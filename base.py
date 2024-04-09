@@ -3,12 +3,6 @@ import subprocess as sp
 
 class paths:
     def __init__(self):
-        # with open('paths.txt', 'r') as fid: 
-        #     lines: list[str] = fid.readlines()
-
-        # for line in lines:
-        #     s = line.split("=")
-        #     setattr(self, s[0].strip(), s[1].strip())
         name = "paths"
         p = __import__(name)
 
