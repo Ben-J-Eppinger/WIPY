@@ -13,6 +13,7 @@ class paths:
 
         self.scratch_solver_path = "/".join([self.wipy_root_path, "scratch", "solver"])
         self.scratch_traces_path = "/".join([self.wipy_root_path, "scratch", "traces"])
+        self.scratch_eval_misfit_path = "/".join([self.wipy_root_path, "scratch", "eval_misfit"])
         self.OUTPUT = "/".join([self.wipy_root_path, "OUTPUT"])
 
 
@@ -101,6 +102,31 @@ class base:
             ["mkdir", "adj"],
             cwd=PATHS.scratch_traces_path,
             capture_output=True,
+        )
+
+        sp.run(
+            ['mkdir', 'scratch/eval_misfit'],
+            cwd=PATHS.wipy_root_path,
+            capture_output=True,
+        )
+
+        sp.run(
+            ["mkdir", "residuals"],
+            cwd=PATHS.scratch_eval_misfit_path,
+            capture_output=True,
+        )
+
+        sp.run(
+            ["mkdir", "model"],
+            cwd=PATHS.scratch_eval_misfit_path,
+            capture_output=True,
+        )
+
+        sp.run(
+            ["cp * " + "/".join([PATHS.scratch_eval_misfit_path, "model"])],
+            cwd=PATHS.model_init_path,
+            shell=True,
+            capture_output=False,
         )
  
         for i in range(PARAMS.n_events):

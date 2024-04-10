@@ -1,7 +1,7 @@
 import subprocess as sp
 from typing import Callable
 from joblib import Parallel, delayed
-from base import paths, params # import the paths and params calsses so that we can use them in our constrcutor function {__init__()}
+from wipy.base import paths, params # import the paths and params calsses so that we can use them in our constrcutor function {__init__()}
 
 
 class solver_base:

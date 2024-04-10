@@ -1,4 +1,4 @@
-from solver.solver_base import solver_base # import to solver base path
+from wipy.solver.solver_base import solver_base # import to solver base
 import subprocess as sp
 
 class specfem2d(solver_base):
@@ -17,6 +17,8 @@ class specfem2d(solver_base):
             new_par='1'
         )
         
+        print("Calling specfem2d forwad solver")
+
         # run the mesher
         sp.run(
             ["./bin/xmeshfem2D"],
