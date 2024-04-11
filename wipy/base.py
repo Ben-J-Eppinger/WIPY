@@ -188,3 +188,10 @@ class base:
                 cwd="/".join([PATHS.scratch_solver_path, dir_num]),
                 capture_output=True,
             )
+
+            sp.run(
+                ["cp " + "/".join([PATHS.scratch_eval_misfit_path, "model"]) + "/* ."],
+                cwd="/".join([PATHS.scratch_solver_path, dir_num, 'DATA']),
+                capture_output=True,
+                shell=True
+            )
