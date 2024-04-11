@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+import argparse
+import subprocess as sp
+import os
+
+def execute() -> None:
+    # get the path of wipy/workflows directory
+    des_path = os.path.dirname(os.path.realpath(__file__))
+
+    # get the path where the commnad is being run from
+    # (this direcory should have the paths.py and parameters.py)
+    src_path = os.getcwd()
+
+    # copy the paths and parameters files to dictory with the workflows
+    # the workflow scripts need to import the paths and parameters files
+    src_path1 = "/".join([src_path, "parameters.py"])
+    src_path2 = "/".join([src_path, "paths.py"])
+    sp.run(["cp", src_path1, des_path])
+    sp.run(["cp", src_path2, des_path])
+
+    # use argpaser to collect a work_flow name from the user
+    # the user enters the desired workflow in the terminal as an argument for wipy_run
+    parser = argparse.ArgumentParser()
+    parser.add_argument('work_flow', type=str, help="options: forward_test")
+    args = parser.parse_args()
+
+    # run the commadn
+    sp.run(["python", args.work_flow+".py"])
+
+if __name__ == "__main__":
+    execute()
