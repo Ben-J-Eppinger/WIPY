@@ -10,7 +10,7 @@ class specfem2d(solver_base):
             path [string]: Will be the root the directory of the specfem call. It should contain the DATA, OUTPUT_FILES, bin, and SEM directories. 
         """
 
-        # asset that the simulation type is forward
+        # set that the simulation type is forward
         super().setpar(
             path="/".join([path, 'DATA', 'Par_file']),
             par='SIMULATION_TYPE',
