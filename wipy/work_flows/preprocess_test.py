@@ -18,7 +18,7 @@ s = solver_class(PATHS, PARAMS)
 s.call_solver(s.forward)
 s.export_traces()
 
-# import preprocess test, initialize preprocessor class, and use it to preprocess data
+# import preprocess_base class, initialize a preprocessor, and use it to mute, filter, and/or normalize data
 from wipy.preprocess.preprocess_base import preprocess_base
 p = preprocess_base(PATHS, PARAMS)
 p.call_preprocessor(data_type='obs')
