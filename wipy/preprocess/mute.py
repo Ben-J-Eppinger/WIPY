@@ -82,8 +82,8 @@ def mute_above_func(stream: Stream, func: Callable, t_taper: float):
 
         mask: np.ndarray = np.piecewise(
             t, 
-            [t < t0, t > t0, t > t1],
-            [0, lambda t: np.flip(np.cos(np.pi*(t-t0)/(2*t_taper))), 1],
+            [t <= t0, t > t0, t > t1],
+            [0, lambda t: np.sin(np.pi*(t-t0)/(2*t_taper)), 1],
         )
 
         trace.data *= mask
@@ -116,7 +116,7 @@ def mute_below_func(stream: Stream, func: Callable, t_taper: float):
 
         mask: np.ndarray = np.piecewise(
             t, 
-            [t < t0, t > t0, t > t1],
+            [t <= t0, t > t0, t > t1],
             [1, lambda t: np.cos(np.pi*(t-t0)/(2*t_taper)), 0],
         )
 

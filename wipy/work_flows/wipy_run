@@ -22,7 +22,7 @@ def execute() -> None:
     # use argpaser to collect a work_flow name from the user
     # the user enters the desired workflow in the terminal as an argument for wipy_run
     parser = argparse.ArgumentParser()
-    parser.add_argument('work_flow', type=str, help="options: forward_test")
+    parser.add_argument('work_flow', type=str, help="options: forward_test, preprocess_test")
     args = parser.parse_args()
 
     # run the commadn

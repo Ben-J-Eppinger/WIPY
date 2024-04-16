@@ -3,13 +3,13 @@ from obspy.core.stream import Stream
 import numpy as np
 
 
-def bandpass_filter(freq_min: float, freq_max: float, stream: Stream, order: int = 2) -> Stream:
+def bandpass_filter(stream: Stream, freq_min: float, freq_max: float, order: int = 2) -> Stream:
     """
     applies a zero phase bandpass filter to each trace in the stream object
-    inputs: 
+    inputs:
+        stream: the obspy stream object for a shot gather 
         freq_min: the lower cutoff frequency of the filter
         freq_max: the upper cutoff frequency of the filter
-        stream: the obspy stream object for a shot gather
         order: the order of the filter
     outputs: 
         stream: the modified shot gather
@@ -24,12 +24,12 @@ def bandpass_filter(freq_min: float, freq_max: float, stream: Stream, order: int
     return stream
 
 
-def lowpass_filter(freq_max: float, stream: Stream, order: int = 2) -> Stream:
+def lowpass_filter(stream: Stream, freq_max: float, order: int = 2) -> Stream:
     """
     applies a zero phase lowpass filter to each trace in the stream object
-    inputs: 
+    inputs:
+        stream: the obspy stream object for a shot gather 
         freq_max: the upper cutoff frequency of the filter
-        stream: the obspy stream object for a shot gather
         order: the order of the filter
     outputs: 
         stream: the modified shot gather
@@ -44,12 +44,12 @@ def lowpass_filter(freq_max: float, stream: Stream, order: int = 2) -> Stream:
     return stream
 
 
-def highpass_filter(freq_min: float, stream: Stream, order: int = 2) -> Stream:
+def highpass_filter(stream: Stream, freq_min: float, order: int = 2) -> Stream:
     """
     applies a zero phase highpass filter to each trace in the stream object
-    inputs: 
+    inputs:
+        stream: the obspy stream object for a shot gather 
         freq_min: the lower cutoff frequency of the filter
-        stream: the obspy stream object for a shot gather
         order: the order of the filter
     outputs: 
         stream: the modified shot gather
