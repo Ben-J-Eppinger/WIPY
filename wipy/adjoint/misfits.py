@@ -29,8 +29,8 @@ def NC_norm(syn: np.ndarray, obs: np.ndarray, dt: float) -> tuple[np.ndarray, fl
         misfit: the NC  misfit for this synthetic-observed pair
     Notes:
         we have added a 1/dt term to the misfit so the the misfits are by convention positive
-        while this is a change from the origincal paper, it should not effect the behavior of 
-        the inversion at all (e.g., Eppinger et al., 2024).
+        while this is a change from the original paper, it should not effect the behavior of 
+        the inversion (e.g., Eppinger et al., 2024)
     """
 
     if np.sum(np.abs(obs)) == 0:
