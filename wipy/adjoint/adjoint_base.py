@@ -53,21 +53,15 @@ class adjoint_base:
 
         for comp in self.PARAMS.components:
 
+            # get gather name based on the current compoenent
+            gather_name = self.PARAMS.gather_names
+            gather_name = list(gather_name)
+            gather_name[1] = comp
+            gather_name = "".join(gather_name)
+
             # get paths of observed, synthetic, and the soon to be adjoint sources / misfits
-            if comp == "x":
-                    gather_name = self.PARAMS.gather_names
-                    gather_name = list(gather_name)
-                    gather_name[1] = "x"
-                    gather_name = "".join(gather_name)+"_proc"
-
-            elif comp == "z":
-                gather_name = self.PARAMS.gather_names
-                gather_name = list(gather_name)
-                gather_name[1] = "z"
-                gather_name = "".join(gather_name)+"_proc"
-
-            obs_path = "/".join([self.PATHS.scratch_traces_path, "obs", "{:06d}".format(event_num), gather_name])
-            syn_path = "/".join([self.PATHS.scratch_traces_path, "syn", "{:06d}".format(event_num), gather_name])
+            obs_path = "/".join([self.PATHS.scratch_traces_path, "obs", "{:06d}".format(event_num), gather_name])+"_proc"
+            syn_path = "/".join([self.PATHS.scratch_traces_path, "syn", "{:06d}".format(event_num), gather_name])+"_proc"
             adj_path = "/".join([self.PATHS.scratch_traces_path, "adj", "{:06d}".format(event_num), gather_name])
             residuals_path = "/".join([self.PATHS.scratch_eval_misfit_path, "residuals", "{:06d}".format(event_num)])
 

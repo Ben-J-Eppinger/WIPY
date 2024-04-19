@@ -156,20 +156,12 @@ class preprocess_base:
 
         path_names: list[str] = []
 
-        for component in self.PARAMS.components:
+        for comp in self.PARAMS.components:
 
-            if component == "x":
-                name = self.PARAMS.gather_names
-                name = list(name)
-                name[1] = "x"
-                name = "".join(name)
-                path_names  += ["/".join([self.PATHS.scratch_traces_path, data_type, "{:06d}".format(i), name]) for i in range(self.PARAMS.n_events)]
-
-            elif component == "z":
-                name = self.PARAMS.gather_names
-                name = list(name)
-                name[1] = "z"
-                name = "".join(name)
-                path_names  += ["/".join([self.PATHS.scratch_traces_path, data_type, "{:06d}".format(i), name]) for i in range(self.PARAMS.n_events)]
+            name = self.PARAMS.gather_names
+            name = list(name)
+            name[1] = comp
+            name = "".join(name)
+            path_names  += ["/".join([self.PATHS.scratch_traces_path, data_type, "{:06d}".format(i), name]) for i in range(self.PARAMS.n_events)]
 
         Parallel(n_jobs=self.PARAMS.n_proc)(delayed(self.preprocess_traces)(path) for path in path_names)
