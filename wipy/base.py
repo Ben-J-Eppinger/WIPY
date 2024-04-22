@@ -29,7 +29,7 @@ class params:
                 setattr(self, var, val)
 
         if self.solver == "specfem2d":
-            self.gather_names = "U*_file_single_d.su"
+            self.gather_names = "U*_file_single_*.su"
 
 
 class base:

@@ -16,6 +16,18 @@ class specfem2d(solver_base):
             par='SIMULATION_TYPE',
             new_par='1'
         )
+
+        # if using elastic modeling output displacement seismograms and if using acoustic modeling output preasure seismograms
+        if self.PARAMS.material == "elastic":
+            seismotype = "1"
+        elif self.PARAMS.material == "acoustic":
+            seismotype = "4"
+            
+        super().setpar(
+            path="/".join([path, 'DATA', 'Par_file']),
+            par='seismotype',
+            new_par=seismotype
+        )
         
         print("Calling specfem2d forwad solver")
 
@@ -55,14 +67,6 @@ class specfem2d(solver_base):
         )        
         
         print("Calling specfem2d adjoint solver")
-
-        if self.PARAMS.material == "acoustic":
-            # if the material is acoustic, then replace the Ux adjoint sources with the Uz adjount sources
-            # this is becasue for a preasure source, specfem2d will only use the Ux file for the adjoint source
-            sp.run(
-                ["cp", "Uz_file_single.su.adj", "Ux_file_single.su.adj"],
-                cwd="/".join([path, "SEM"]),
-            )
 
         sp.run(
             ["./bin/xspecfem2D"],

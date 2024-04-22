@@ -167,13 +167,21 @@ class preprocess_base:
         path_names: list[str] = []
 
         if self.PARAMS.solver == "specfem2d":
-            components = ["x", "z"]
+            if self.PARAMS.material == "elastic":
+                components = ["x", "z"]
+                mode = "d"
+            elif self.PARAMS.material == "acoustic":
+                components = ["p"]
+                mode = "p"
 
         for comp in components:
-            name = self.PARAMS.gather_names
-            name = list(name)
+            name: str = self.PARAMS.gather_names
+            name: list[str] = list(name)
             name[1] = comp
+            name[-4] = mode
             name = "".join(name)
             path_names  += ["/".join([self.PATHS.scratch_traces_path, data_type, "{:06d}".format(i), name]) for i in range(self.PARAMS.n_events)]
 
+        print("preprocessing traces")
+        
         Parallel(n_jobs=self.PARAMS.n_proc)(delayed(self.preprocess_traces)(path) for path in path_names)

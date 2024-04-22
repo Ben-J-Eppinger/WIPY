@@ -2,7 +2,8 @@ import subprocess as sp
 import numpy as np
 from typing import Callable
 from joblib import Parallel, delayed
-from wipy.base import paths, params # import the paths and params calsses so that we can use them in our constrcutor function {__init__()}
+from wipy.base import paths, params # import the paths and params classes so that we can use them in our constrcutor function {__init__()}
+from wipy.wipy_utils import utils
 
 
 class solver_base:
@@ -22,6 +23,14 @@ class solver_base:
         for param in self.PARAMS.invert_params: 
             kernels_used.append(params_to_kernel_names[param])
 
+        # if using the approx hessian precond, append it to the end of teh kernels_used list
+        if self.PARAMS.precond == "approx_hessian":
+            if self.PARAMS.material == "elastic":
+                kernels_used.append("Hessian1_kernel")
+            elif self.PARAMS.material == "acoustic":
+                kernels_used.append("Hessian1_acoustic_kernel")
+
+        self.PARAMS.params_to_kernel_names = params_to_kernel_names
         self.PARAMS.kernels_used = kernels_used
 
     
@@ -156,6 +165,25 @@ class solver_base:
                 cwd="/".join([self.PATHS.scratch_solver_path, "000000"]),
                 capture_output=True
             )
+
+    def apply_precond(self): 
+
+        if self.PARAMS.precond == "approx_hessian":
+            
+            hess_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.kernels_used[-1]+"_smooth.bin"])
+            hess = utils.read_fortran_binary(hess_path)
+
+            for param in self.PARAMS.invert_params:
+
+                param_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.params_to_kernel_names[param]+"_smooth.bin"])
+                par = utils.read_fortran_binary(param_path)
+
+                par /= hess
+
+                out_path = "/".join([self.PATHS.scratch_eval_grad_path, "gradient", "proc000000_grad_"+param+".bin"])
+                utils.write_fortran_binary(out_path, par)
+
+
 
         
 
