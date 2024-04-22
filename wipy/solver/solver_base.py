@@ -11,6 +11,19 @@ class solver_base:
         self.PATHS: paths = PATHS
         self.PARAMS: params = PARAMS
 
+        # make dictinaries mapping parameters names to the corresponding kerenel name output by scecfem2d
+        if self.PARAMS.material == "elastic":
+            params_to_kernel_names: dict = {"vp": "alpha_kernel", "vs": "beta_kernel", "rho": "rho_kernel"}
+        elif self.PARAMS.material == "acoustic":
+            params_to_kernel_names: dict = {"vp": "c_acoustic_kernel", "rho": "rho_acoustic_kernel"}
+
+        # make a list of the kernel names we are actually going to used based on the type of material and parameters we invert for
+        kernels_used: list[str] = []
+        for param in self.PARAMS.invert_params: 
+            kernels_used.append(params_to_kernel_names[param])
+
+        self.PARAMS.kernels_used = kernels_used
+
     
     def setpar(self, path, par, new_par) -> None:
         """
@@ -96,9 +109,14 @@ class solver_base:
         with open(file_path, "w") as fid:
             fid.writelines(kernel_names)
 
+        command = ["./bin/xcombine_sem", 
+                   ",".join(self.PARAMS.kernels_used), 
+                   "kernel_names.txt", 
+                   "/".join([self.PATHS.scratch_eval_grad_path, "sum"])]
+
         # call the spcefem combine function
         sp.run(
-            ["./bin/xcombine_sem", ", ".join(self.PARAMS.invert_params), "kernel_names.txt", "/".join([self.PATHS.scratch_eval_grad_path, "sum"])],
+            command,
             cwd="/".join([self.PATHS.scratch_solver_path, "000000"]),
             capture_output=True,
         )
@@ -118,8 +136,12 @@ class solver_base:
             )
 
     def smooth_kernels(self):
+        """"
+        smooth the kerenels in the scratch/eval_grad/sum folder and output them in the sctratch/eval_grad/smooth folder
+        by call the smoother from the sctratch/solver/000000 folder
+        """
 
-        for param in self.PARAMS.invert_params:
+        for param in self.PARAMS.kernels_used:
 
             command = ["./bin/xsmooth_sem", 
                        "{:.2f}".format(self.PARAMS.smooth_h/np.sqrt(8)), 

@@ -56,17 +56,19 @@ class specfem2d(solver_base):
         
         print("Calling specfem2d adjoint solver")
 
+        if self.PARAMS.material == "acoustic":
+            # if the material is acoustic, then replace the Ux adjoint sources with the Uz adjount sources
+            # this is becasue for a preasure source, specfem2d will only use the Ux file for the adjoint source
+            sp.run(
+                ["cp", "Uz_file_single.su.adj", "Ux_file_single.su.adj"],
+                cwd="/".join([path, "SEM"]),
+            )
+
         sp.run(
             ["./bin/xspecfem2D"],
             cwd=path,
             capture_output=True,
         )
     
-    
-    def smooth(self, path: str) -> None:
-        return None
-    
-    
-    def sum_kernels(self, path) -> None:
-        return None
+
  

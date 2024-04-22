@@ -35,11 +35,3 @@ class specfem2d(solver_base):
         
         return None
     
-    
-    def smooth(self, path: str) -> None:
-        return None
-    
-    
-    def sum_kernels(self, path) -> None:
-        return None
- 
