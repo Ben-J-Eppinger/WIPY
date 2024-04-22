@@ -14,6 +14,7 @@ class paths:
         self.scratch_solver_path = "/".join([self.wipy_root_path, "scratch", "solver"])
         self.scratch_traces_path = "/".join([self.wipy_root_path, "scratch", "traces"])
         self.scratch_eval_misfit_path = "/".join([self.wipy_root_path, "scratch", "eval_misfit"])
+        self.scratch_eval_grad_path = "/".join([self.wipy_root_path, "scratch", "eval_grad"])
         self.OUTPUT = "/".join([self.wipy_root_path, "OUTPUT"])
 
 
@@ -84,7 +85,22 @@ class base:
                 capture_output=True,
                 shell=True
             )
+
+    
+    def import_adjoint_sources(self) -> None:
+        """"
+        import adjoint sources from scratch/traces/adj/<event_num>/ to
+        scratch/solver/<event_num>/SEM/
+        """
         
+        for event_num in range(self.PARAMS.n_events):
+            sp.run(
+                ["cp * " + "/".join([self.PATHS.scratch_solver_path, "{:06d}".format(event_num), "SEM"])],
+                cwd="/".join([self.PATHS.scratch_traces_path, "adj", "{:06d}".format(event_num)]),
+                capture_output=True,
+                shell=True,
+            )
+
 
     def setup(self) -> None:
         """
@@ -164,6 +180,41 @@ class base:
             cwd=PATHS.scratch_eval_misfit_path,
             capture_output=True,
         )
+
+        # make scratch/eval_grad
+        sp.run(
+            ["mkdir", "scratch/eval_grad"],
+            cwd=PATHS.wipy_root_path,
+            capture_output=True,
+        )
+
+        # make scratch/eval_grad/kernels
+        sp.run(
+            ["mkdir", "kernels"],
+            cwd=PATHS.scratch_eval_grad_path,
+            capture_output=True,
+        )
+
+        # make scratch/eval_grad/sum
+        sp.run(
+            ["mkdir", "sum"],
+            cwd=PATHS.scratch_eval_grad_path,
+            capture_output=True,
+        )
+
+        # make scratch/eval_grad/sum_smooth
+        sp.run(
+            ["mkdir", "sum_smooth"],
+            cwd=PATHS.scratch_eval_grad_path,
+            capture_output=True,
+        )
+
+        # make scratch/eval_grad/gradient
+        sp.run(
+            ["mkdir", "gradient"],
+            cwd=PATHS.scratch_eval_grad_path,
+            capture_output=True,
+        )
  
         for i in range(PARAMS.n_events):
 
@@ -229,6 +280,13 @@ class base:
                 ["mkdir", "SEM"],
                 cwd="/".join([PATHS.scratch_solver_path, dir_num]),
                 capture_output=True,
+            )
+
+            # make a direcoty in scratch/eval_grad/kerenls for each event
+            sp.run(
+                ["mkdir", dir_num],
+                cwd="/".join([PATHS.scratch_eval_grad_path, "kernels"]),
+                capture_output=True
             )
 
         self.import_model(src_path=PATHS.model_init_path)     

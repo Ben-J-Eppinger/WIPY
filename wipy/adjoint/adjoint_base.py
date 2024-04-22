@@ -51,18 +51,22 @@ class adjoint_base:
             event_num: the event number of the data to be processed
         """
 
-        for comp in self.PARAMS.components:
+        if self.PARAMS.solver == "specfem2d":
+            components = ["x", "z"]
+
+        for comp in components:
 
             # get gather name based on the current compoenent
             gather_name = self.PARAMS.gather_names
             gather_name = list(gather_name)
             gather_name[1] = comp
             gather_name = "".join(gather_name)
+            adj_name = "U" + comp + "_file_single.su.adj"
 
             # get paths of observed, synthetic, and the soon to be adjoint sources / misfits
             obs_path = "/".join([self.PATHS.scratch_traces_path, "obs", "{:06d}".format(event_num), gather_name])+"_proc"
             syn_path = "/".join([self.PATHS.scratch_traces_path, "syn", "{:06d}".format(event_num), gather_name])+"_proc"
-            adj_path = "/".join([self.PATHS.scratch_traces_path, "adj", "{:06d}".format(event_num), gather_name])
+            adj_path = "/".join([self.PATHS.scratch_traces_path, "adj", "{:06d}".format(event_num), adj_name])
             residuals_path = "/".join([self.PATHS.scratch_eval_misfit_path, "residuals", "{:06d}".format(event_num)])
 
             # load synthetic and observed data and the time increment
@@ -74,12 +78,19 @@ class adjoint_base:
             adj = deepcopy(syn) 
             residuals = []
 
-            # loop through each trace to calculate the misfit and adjoint source
-            for tr_ind in range(len(obs.traces)): 
+            if comp in self.PARAMS.components:
+                # if the component being are processing is one that is being inverted
+                # loop through each trace to calculate the misfit and adjoint source
+                for tr_ind in range(len(obs.traces)): 
 
-                wadj, resid = self.misfit_func(syn.traces[tr_ind].data, obs.traces[tr_ind].data, dt)
-                adj.traces[tr_ind].data = wadj
-                residuals.append(resid)
+                    wadj, resid = self.misfit_func(syn.traces[tr_ind].data, obs.traces[tr_ind].data, dt)
+                    adj.traces[tr_ind].data = wadj
+                    residuals.append(resid)
+            
+            else:
+                # otherwise, set all adjoint sources for this component to be 0
+                for tr_ind in range(len(obs.traces)): 
+                    adj.traces[tr_ind].data *= 0 
 
             # write adjoint sources
             self.write_adjoint_sources(adj_path, adj)

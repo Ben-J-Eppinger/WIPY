@@ -31,8 +31,8 @@ class preprocess_base:
                     max_offset=self.PARAMS.max_offset
                 )
 
-            if self.PARAMS.mute.count("mute_shot_offsets") > 0:
-                data = mute.mute_shot_offsets(
+            if self.PARAMS.mute.count("mute_short_offsets") > 0:
+                data = mute.mute_short_offsets(
                     stream=data, 
                     min_offset=self.PARAMS.min_offset
                 )
@@ -134,14 +134,24 @@ class preprocess_base:
         inputs: 
             path: the directory and name of the seismic unix (SU) file that will be preprocessed
         """
+
+        # get the component from the file name
+        comp: list[str] = path.split("/")
+        comp:str = comp[-1]
+        comp: str = comp[1]
         
         # load traces from path
         data: Stream = obspy.read(path, format="SU")
 
-        # preprocess traces
-        data = self.apply_mute(data)
-        data = self.apply_filter(data)
-        data = self.apply_normalize(data)
+        if comp in self.PARAMS.components:
+            # if the component for this data is one of the component we want to work with
+            # preprocess traces
+            data = self.apply_mute(data)
+            data = self.apply_filter(data)
+            data = self.apply_normalize(data)
+        else:
+            # otherwise, zero out all the traces
+            data = mute.mute_far_offsets(data, -1)
 
         # save traces with _proc appended
         self.write_traces(path, data)
@@ -156,8 +166,10 @@ class preprocess_base:
 
         path_names: list[str] = []
 
-        for comp in self.PARAMS.components:
+        if self.PARAMS.solver == "specfem2d":
+            components = ["x", "z"]
 
+        for comp in components:
             name = self.PARAMS.gather_names
             name = list(name)
             name[1] = comp

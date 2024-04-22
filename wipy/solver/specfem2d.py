@@ -42,10 +42,20 @@ class specfem2d(solver_base):
             path [string]: Will be the root the directory of the specfem call. It should contain the DATA, OUTPUT_FILES, bin, and SEM directories. 
         """
         
-        #
-        # Add line here to make sure that the simulation_type = 3
-        #
+        super().setpar(
+            path="/".join([path, 'DATA', 'Par_file']),
+            par='SIMULATION_TYPE',
+            new_par='3'
+        )
+
+        super().setpar(
+            path="/".join([path, 'DATA', 'Par_file']),
+            par='SAVE_FORWARD',
+            new_par='.true.'
+        )        
         
+        print("Calling specfem2d adjoint solver")
+
         sp.run(
             ["./bin/xspecfem2D"],
             cwd=path,
