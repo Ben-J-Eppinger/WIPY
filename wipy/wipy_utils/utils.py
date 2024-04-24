@@ -1,6 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.interpolate import griddata
+import obspy
+from obspy.core.stream import Stream
 
 def read_fortran_binary(file_path: str) -> np.array:
     """
@@ -101,3 +103,21 @@ def plot_model_fast(model: dict[str: np.array], spac: float, par: str) -> None:
     plt.pcolormesh(grid_x, grid_z, f, shading='auto', cmap="turbo")
     plt.colorbar()
     plt.gca().set_aspect(1)
+    plt.show()
+
+
+def plot_traces(stream: Stream, gain: int = 1, line_spec: str = "k-") -> None:
+    """
+    plot obspy stream objects for shot gathers
+    """
+
+    dt = stream.traces[0].stats.delta
+    T = stream.traces[0].stats.npts*dt
+    t = np.arange(start=0, stop=T, step=dt)
+
+    for trace in stream.traces:
+        plt.plot(
+            trace.data*gain + trace.stats.su.trace_header.group_coordinate_x,
+            t, 
+            line_spec,
+        )

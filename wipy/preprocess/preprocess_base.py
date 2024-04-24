@@ -182,6 +182,6 @@ class preprocess_base:
             name = "".join(name)
             path_names  += ["/".join([self.PATHS.scratch_traces_path, data_type, "{:06d}".format(i), name]) for i in range(self.PARAMS.n_events)]
 
-        print("preprocessing traces")
+        print("\npreprocessing traces\n")
         
         Parallel(n_jobs=self.PARAMS.n_proc)(delayed(self.preprocess_traces)(path) for path in path_names)

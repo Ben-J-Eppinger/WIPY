@@ -167,21 +167,23 @@ class solver_base:
             )
 
     def apply_precond(self): 
+        # worry about applying preconditioner later
+        pass
 
-        if self.PARAMS.precond == "approx_hessian":
+        # if self.PARAMS.precond == "approx_hessian":
             
-            hess_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.kernels_used[-1]+"_smooth.bin"])
-            hess = utils.read_fortran_binary(hess_path)
+        #     hess_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.kernels_used[-1]+"_smooth.bin"])
+        #     hess = utils.read_fortran_binary(hess_path)
 
-            for param in self.PARAMS.invert_params:
+        #     for param in self.PARAMS.invert_params:
 
-                param_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.params_to_kernel_names[param]+"_smooth.bin"])
-                par = utils.read_fortran_binary(param_path)
+        #         param_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.params_to_kernel_names[param]+"_smooth.bin"])
+        #         par = utils.read_fortran_binary(param_path)
 
-                par /= hess
+        #         par /= hess
 
-                out_path = "/".join([self.PATHS.scratch_eval_grad_path, "gradient", "proc000000_grad_"+param+".bin"])
-                utils.write_fortran_binary(out_path, par)
+        #         out_path = "/".join([self.PATHS.scratch_eval_grad_path, "gradient", "proc000000_grad_"+param+".bin"])
+        #         utils.write_fortran_binary(out_path, par)
 
 
 

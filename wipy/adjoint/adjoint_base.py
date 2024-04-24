@@ -107,6 +107,6 @@ class adjoint_base:
         Calls make_mifits_and_adjoint_traces in parralel so that as many events as possible can be processed at the same time
         """
 
-        print("computing misfits and adjoint sources")
+        print("\ncomputing misfits and adjoint sources\n")
 
         Parallel(n_jobs=self.PARAMS.n_proc)(delayed(self.make_mifits_and_adjoint_traces)(event) for event in range(self.PARAMS.n_events))
