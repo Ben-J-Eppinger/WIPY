@@ -110,3 +110,19 @@ class adjoint_base:
         print("\ncomputing misfits and adjoint sources\n")
 
         Parallel(n_jobs=self.PARAMS.n_proc)(delayed(self.make_mifits_and_adjoint_traces)(event) for event in range(self.PARAMS.n_events))
+
+
+    def sum_residuals(self) -> float: 
+        """
+        reads the residuals in scratch/eval_misfit/residuals/ and and summs the residuals together
+        """
+        resid_paths = ["/".join([self.PATHS.scratch_eval_misfit_path, "residuals", "{:06d}".format(num)]) for num in range(self.PARAMS.n_events)]
+
+        misfit = 0
+        for path in resid_paths:
+            m = np.sum(np.loadtxt(path))
+            misfit += m
+
+        misfit /= self.PARAMS.n_events
+
+        return misfit
