@@ -83,6 +83,9 @@ class solver_base:
 
 
     def save_traces(self) -> None: 
+        """
+        copies traces from scratch to output direcotry 
+        """
         sp.run(
             ["cp", "-r", self.PATHS.scratch_traces_path, self.PATHS.OUTPUT],
             cwd=self.PATHS.wipy_root_path,
