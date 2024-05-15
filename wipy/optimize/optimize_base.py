@@ -297,7 +297,7 @@ class optimize_base:
     
     def save_traces(self):
         """
-        copies traces from scratch to outputs folder
+        copies traces from scratch to OUTPUT folder
         """
 
         save_path = "/".join([self.PATHS.OUTPUT, "traces_{:04d}".format(self.iter)])
@@ -310,6 +310,25 @@ class optimize_base:
         sp.run(
             ["cp", "-r", self.PATHS.scratch_traces_path, save_path],
             cwd=self.PATHS.wipy_root_path,
+        )
+
+    
+    def save_residuals(self):
+        """
+        copies residuals from scratch to OUTPUT folder
+        """
+
+        save_path = "/".join([self.PATHS.OUTPUT, "residuals_{:04d}".format(self.iter)])
+        src_path = "/".join([self.PATHS.scratch_eval_misfit_path, "residuals"])
+
+        sp.run(
+            ["mkdir", "residuals_{:04d}".format(self.iter)], 
+            cwd=self.PATHS.OUTPUT
+        )
+
+        sp.run(
+            ["cp", "-r", src_path, save_path],
+            cwd=self.PATHS.wipy_root_path
         )
 
 
@@ -365,10 +384,15 @@ class optimize_base:
             
             # check Armijo condition
             if residuals[-1] < residuals[0] + c*alpha*theta:
-                # if true, save the model to the output directory
+
+                # if true, save the model and the residuals to the output directory
                 self.export_model(m_test)
+                self.save_residuals()
+                
                 return "Pass"
+            
             else:
+                
                 # update alpha
                 alpha *= tau
 
