@@ -47,7 +47,7 @@ def NC_norm(syn: np.ndarray, obs: np.ndarray, dt: float) -> tuple[np.ndarray, fl
         inner = np.dot(syn_hat, obs_hat)
 
         adj = (inner*syn_hat - obs_hat)/norm_syn
-        misfit = 1/dt-inner
+        misfit = 1-inner
 
     return adj, misfit
 

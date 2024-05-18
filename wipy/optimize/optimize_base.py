@@ -22,6 +22,10 @@ class optimize_base:
         self.adjoint = adjoint
         self.solver = solver
         self.iter: int = 0
+
+        if self.PARAMS.optimize == "LBGFS":
+            self.LBGFS_mem = 1
+            self.LBGFS_mem_max = 6
         
         with open("/".join([self.PATHS.wipy_root_path, "scratch", "opt.log"]), "w") as fid:
             fid.write("iter     step length     misfit\n")
@@ -51,7 +55,7 @@ class optimize_base:
             var = "-"*11
         else:
             var = "{:0.5e}".format(alpha)
-        txt = "{:04d}".format(self.iter) + " "*5 + var + " "*5 + "{:0.5e}".format(misfit) + "\n"
+        txt = "{:04d}".format(self.iter) + " "*5 + var + " "*5 + "{:0.3e}".format(misfit) + "\n"
         with open(path, "a") as fid:
             fid.write(txt)
 
@@ -97,9 +101,13 @@ class optimize_base:
             h = self.get_GD_descent_dir()
 
         # using LBGFS
-        elif self.PARAMS.optmize == "LBGFS":
-            # not implemented yet
-            pass
+        elif self.PARAMS.optimize == "LBGFS":
+            if self.iter == 0:
+                h = self.get_GD_descent_dir()
+            elif self.iter > 0:
+                h = self.get_LBFGS_descent_dir()
+                # update LBGFS memory
+                self.LBGFS_mem = min(self.LBGFS_mem+1, self.LBGFS_mem_max)
 
         return h
     
@@ -161,6 +169,113 @@ class optimize_base:
         return h
     
 
+    def get_LBFGS_descent_dir(self) -> dict[str: np.ndarray]:
+        """
+        Gets LBFGS descent direction using the method described by Modrak et al., 2016
+        "Seismic waveforom inversion best practicess: regional and exploration test cases"
+        inputs:
+            None
+        outputs:
+            h: a dictionary representation the descent direction.
+        """
+
+        pars = []
+        for par in self.PARAMS.invert_params:
+            pars.append("grad_" + par)
+
+        it = self.iter
+        l = self.LBGFS_mem           # maxium number of past gradients to use when constructing the descent direction
+
+        # get j
+        j = min(it, l)
+
+        # fill out s and y
+        s: dict[str: np.ndarray] = {}
+        y: dict[str: np.ndarray] = {}
+
+        for i in range(it-1, it-j-1, -1):
+            s[i] = self.get_s_sub(i, self.PARAMS.invert_params)
+            y[i] = self.get_y_sub(i, pars)
+
+        # fill out lambda and create q
+        lamb: dict[str: float] = {}
+        grad_path = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(it)])
+        q = utils.load_model(grad_path, pars)
+        q = self.dict2vec(q)
+
+        for i in range(it-1, it-j-1, -1): 
+            lamb[i] = np.inner(s[i], q)/np.inner(y[i], s[i])
+            q -= lamb[i]*y[i]
+
+        # create gamma and initialize r
+        gamma = np.inner(s[it-1], y[it-1])/np.inner(y[it-1], y[it-1])
+        r = gamma*q
+
+        # calc mu and r
+        for i in range(it-j, it):
+            mu = np.inner(y[i], r)/np.inner(y[i], s[i])
+            r += s[i]*(lamb[i] - mu)
+
+        # output the descent direction as a dictionary
+        h = r
+        h = self.vec2dict(h, pars)
+
+        return h
+
+
+    def get_s_sub(self, i: int, pars) -> np.ndarray:
+        """
+        Helper function get_LBFGS_descent_dir 
+        """
+
+        model_path_1 = "/".join([self.PATHS.OUTPUT, "model_" +  "{:04d}".format(i+1)])
+        model_path_0 = "/".join([self.PATHS.OUTPUT, "model_" +  "{:04d}".format(i)])
+
+        m1 = utils.load_model(model_path_1, pars)
+        m1 = self.dict2vec(m1)
+        
+        m0 = utils.load_model(model_path_0, pars)
+        m0 = self.dict2vec(m0)
+
+        s_sub = m1 - m0
+
+        return s_sub
+
+
+    def get_y_sub(self, i: int, pars) -> np.ndarray:
+        """
+        Helper function get_LBFGS_descent_dir
+        """
+
+        grad_path_1 = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(i+1)])
+        grad_path_0 = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(i)])
+
+        g1 = utils.load_model(grad_path_1, pars)
+        g1 = self.dict2vec(g1)
+        
+        g0 = utils.load_model(grad_path_0, pars)
+        g0 = self.dict2vec(g0)
+
+        y_sub = g1 - g0
+
+        return y_sub
+
+
+    def vec2dict(self, vec: np.ndarray, pars: list[str]) -> dict[str: np.ndarray]:
+        """
+        helper function for get_LBFGS_descent_dir
+        """
+
+        d: dict[str: np.ndarray] = {}
+        N: int = int(len(vec)/len(pars))
+
+        for par in pars:
+            d[par] = vec[0:N]
+            vec = vec[N:]
+            
+        return d
+    
+
     def dict2vec(self, dict: dict[str: np.array]) -> np.array:
         """
         tranforms dictionary representation of model/gradients to vecocts 
@@ -189,10 +304,7 @@ class optimize_base:
             theta: measure of how parallel the gradient and descent direction are
         """
        
-        h = self.get_descent_dir()
         h_vec = self.dict2vec(h)
-
-        g = self.load_gradient()
         g_vec = self.dict2vec(g)
 
         theta = np.dot(h_vec, g_vec) / (np.linalg.norm(h_vec) * np.linalg.norm(g_vec))
@@ -289,7 +401,8 @@ class optimize_base:
 
         sp.run(
             ["mkdir", "model_{:04d}".format(self.iter)],
-            cwd=self.PATHS.OUTPUT
+            cwd=self.PATHS.OUTPUT,
+            capture_output=True
         )
 
         utils.write_model(save_path, m)
@@ -304,7 +417,8 @@ class optimize_base:
 
         sp.run(
             ["mkdir", "traces_{:04d}".format(self.iter)],
-            cwd=self.PATHS.OUTPUT
+            cwd=self.PATHS.OUTPUT,
+            capture_output=True
         )
 
         sp.run(
@@ -330,6 +444,24 @@ class optimize_base:
             ["cp", "-r", src_path, save_path],
             cwd=self.PATHS.wipy_root_path
         )
+
+    
+    def get_iter_misfit(self, iter: int) -> float: 
+        """
+        reads the residuals in OUTPUT/residuals_<iter>/residuals/ folder and and sums the residuals together
+        inputs:
+            iter: the iteration number of the inversion from which we desire the residuals 
+        """
+        resid_paths = ["/".join([self.PATHS.OUTPUT, "residuals_{:04d}".format(iter), "residuals", "{:06d}".format(num)]) for num in range(self.PARAMS.n_events)]
+
+        misfit = 0
+        for path in resid_paths:
+            m = np.sum(np.loadtxt(path))
+            misfit += m
+
+        misfit /= self.PARAMS.n_events
+
+        return misfit
 
 
     def backtrack_linesearch(self) -> str:
@@ -359,7 +491,7 @@ class optimize_base:
 
         # initialize alpha and residuals
         alpha = alpha_max
-        residuals = [self.adjoint.sum_residuals()]
+        residuals = [self.get_iter_misfit(self.iter)]
 
         # begin line search
         while alpha > alpha_min:
@@ -386,16 +518,40 @@ class optimize_base:
             if residuals[-1] < residuals[0] + c*alpha*theta:
 
                 # if true, save the model and the residuals to the output directory
+                self.iter += 1
                 self.export_model(m_test)
                 self.save_residuals()
+
+                # add blank line to opt.log file
+                with open("/".join([self.PATHS.wipy_root_path, "scratch", "opt.log"]), "a") as fid:
+                    fid.write("\n")
                 
                 return "Pass"
             
             else:
-                
                 # update alpha
                 alpha *= tau
 
-        return "Fail"
+        if self.PARAMS.optimize =="GD": 
+            return "Fail"
+        
+        elif self.PARAMS.optimize == "LBGFS":
+
+            # add blank line to opt.log file
+            with open("/".join([self.PATHS.wipy_root_path, "scratch", "opt.log"]), "a") as fid:
+                fid.write("restart using GD \n")
+                
+            self.PARAMS.optimize = "GD"
+            print("line search failed: switching to gradient descent \n")
+            status = self.backtrack_linesearch() 
+            
+            if status == "Pass":
+                self.PARAMS.optimize = "LBGFS"
+                self.LBGFS_mem = 1
+                print("resart succeeded: switching back to LBGFS \n")
+            
+            return status
+
+            
 
 

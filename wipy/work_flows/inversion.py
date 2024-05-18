@@ -17,6 +17,9 @@ from wipy.adjoint.adjoint_base import adjoint_base
 # import the optmizse module
 from wipy.optimize.optimize_base import optimize_base
 
+# import wipy utils
+from wipy.wipy_utils import utils
+
 # initialize the base variable
 b = base(PATHS, PARAMS)
 b.clean()
@@ -39,25 +42,26 @@ o = optimize_base(base=b,
                   adjoint=a,
                   solver=s)
 
+# save the initial model
+m_init = utils.load_model(PATHS.model_init_path, PARAMS.invert_params)
+o.export_model(m_init)
+
 # do the invesion
 while o.iter < PARAMS.max_iter:
-
-    # add blank line to opt.log file
-    with open("/".join([PATHS.wipy_root_path, "scratch", "opt.log"]), "a") as fid:
-        fid.write("\n")
-   
-    # update the iteration number
-    o.iter += 1
-
+    
     # compute gradient
     o.comp_gradient()
 
-    # update model with backtracking line search
-    status = o.backtrack_linesearch()
+    # save the residulas corresponding to the initial model
+    if o.iter == 0:
+        o.save_residuals()
 
     # save traces if requested
     if PARAMS.save_traces:
         o.save_traces()
+
+    # update model with backtracking line search
+    status = o.backtrack_linesearch()
 
     # quit if line search fails
     if status == "Fail":

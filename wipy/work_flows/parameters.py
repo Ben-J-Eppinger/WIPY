@@ -14,7 +14,7 @@ n_proc: int = -1                # -1 means that the miximum number of processors
 filter: str = "lowpass"    # options: bandpass(freq_min, freq_max), lowpass(freq_max), highpass(freq_min)
 # freq_min: float = 1
 freq_max: float = 5
-filter_order: int = 10
+filter_order: int = 4
 
 mute: list[str] = ["mute_far_offsets", "mute_short_offsets",]
 # options: "mute_far_offsets", "mute_short_offsets", "mute_above_func", "mute_below_func"
@@ -35,8 +35,8 @@ max_iter: int = 10
 
 misfit: str = "NC_norm"                     # options: L2_norm, NC_norm
 
-smooth_v: float = 20.0
-smooth_h: float = 20.0
+smooth_v: float = 40.0
+smooth_h: float = 40.0
 
 precond: str =  "approx_hessian"    # options: approx_hessian, from_file
 
