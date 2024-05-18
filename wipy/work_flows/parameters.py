@@ -13,10 +13,10 @@ n_proc: int = -1                # -1 means that the miximum number of processors
 
 filter: str = "lowpass"    # options: bandpass(freq_min, freq_max), lowpass(freq_max), highpass(freq_min)
 # freq_min: float = 1
-freq_max: float = 5
-filter_order: int = 4
+freq_max: float = 15.0
+filter_order: int = 10
 
-mute: list[str] = ["mute_far_offsets", "mute_short_offsets",]
+mute: list[str] = []
 # options: "mute_far_offsets", "mute_short_offsets", "mute_above_func", "mute_below_func"
 max_offset: float = 180
 min_offset: float = 20
@@ -29,18 +29,18 @@ normalize = ["trace_normalize", "event_normalize"]
 ############################
 ### inversion parameters ###
 ############################
-optimize: str = "GD"                        # options: GD (gradient descent), LBGFS
+optimize: str = "LBFGS"                        # options: GD (gradient descent), LBFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno)
 
-max_iter: int = 10
+max_iter: int = 50
 
 misfit: str = "NC_norm"                     # options: L2_norm, NC_norm
 
-smooth_v: float = 40.0
-smooth_h: float = 40.0
+smooth_v: float = 15.0
+smooth_h: float = 15.0
 
 precond: str =  "approx_hessian"    # options: approx_hessian, from_file
 
-invert_params: list[str] = ["vp", "rho"]    # options: vp, vs, rho
+invert_params: list[str] = ["vp"]    # options: vp, vs, rho
 
 # bounds fro listed parameters
 vp_bounds: list[float] = [299, 450]

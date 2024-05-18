@@ -23,9 +23,9 @@ class optimize_base:
         self.solver = solver
         self.iter: int = 0
 
-        if self.PARAMS.optimize == "LBGFS":
-            self.LBGFS_mem = 1
-            self.LBGFS_mem_max = 6
+        if self.PARAMS.optimize == "LBFGS":
+            self.LBFGS_mem = 1
+            self.LBFGS_mem_max = 6
         
         with open("/".join([self.PATHS.wipy_root_path, "scratch", "opt.log"]), "w") as fid:
             fid.write("iter     step length     misfit\n")
@@ -88,7 +88,7 @@ class optimize_base:
     def get_descent_dir(self) -> dict[str: np.ndarray]:
         """
         compute the descent direction from the preconditiond gradient 
-        (and past gradients/models if using LBGFS)
+        (and past gradients/models if using LBFGS)
         inputs:
             None:
         outputs:
@@ -100,14 +100,14 @@ class optimize_base:
         if self.PARAMS.optimize == "GD":
             h = self.get_GD_descent_dir()
 
-        # using LBGFS
-        elif self.PARAMS.optimize == "LBGFS":
+        # using LBFGS
+        elif self.PARAMS.optimize == "LBFGS":
             if self.iter == 0:
                 h = self.get_GD_descent_dir()
             elif self.iter > 0:
                 h = self.get_LBFGS_descent_dir()
-                # update LBGFS memory
-                self.LBGFS_mem = min(self.LBGFS_mem+1, self.LBGFS_mem_max)
+                # update LBFGS memory
+                self.LBFGS_mem = min(self.LBFGS_mem+1, self.LBFGS_mem_max)
 
         return h
     
@@ -184,7 +184,7 @@ class optimize_base:
             pars.append("grad_" + par)
 
         it = self.iter
-        l = self.LBGFS_mem           # maxium number of past gradients to use when constructing the descent direction
+        l = self.LBFGS_mem           # maxium number of past gradients to use when constructing the descent direction
 
         # get j
         j = min(it, l)
@@ -217,7 +217,7 @@ class optimize_base:
             r += s[i]*(lamb[i] - mu)
 
         # output the descent direction as a dictionary
-        h = r
+        h = -r
         h = self.vec2dict(h, pars)
 
         return h
@@ -535,7 +535,7 @@ class optimize_base:
         if self.PARAMS.optimize =="GD": 
             return "Fail"
         
-        elif self.PARAMS.optimize == "LBGFS":
+        elif self.PARAMS.optimize == "LBFGS":
 
             # add blank line to opt.log file
             with open("/".join([self.PATHS.wipy_root_path, "scratch", "opt.log"]), "a") as fid:
@@ -546,9 +546,9 @@ class optimize_base:
             status = self.backtrack_linesearch() 
             
             if status == "Pass":
-                self.PARAMS.optimize = "LBGFS"
-                self.LBGFS_mem = 1
-                print("resart succeeded: switching back to LBGFS \n")
+                self.PARAMS.optimize = "LBFGS"
+                self.LBFGS_mem = 1
+                print("resart succeeded: switching back to LBFGS \n")
             
             return status
 
