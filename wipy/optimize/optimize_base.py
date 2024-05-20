@@ -77,9 +77,7 @@ class optimize_base:
         self.solver.export_kernels()
         self.solver.combine_kernels()
         self.solver.smooth_kernels()
-
-        # apply preconditioner
-        self.solver.apply_precond()
+        self.solver.export_smoothed_kernels()
 
         # save gradient
         self.save_gadient()
@@ -108,6 +106,10 @@ class optimize_base:
                 h = self.get_LBFGS_descent_dir()
                 # update LBFGS memory
                 self.LBFGS_mem = min(self.LBFGS_mem+1, self.LBFGS_mem_max)
+
+        # apply preconditioner
+        if self.PARAMS.precond is not None:
+            h = self.solver.apply_precond(h)
 
         return h
     
@@ -159,7 +161,7 @@ class optimize_base:
             h: a dictionary representation the gradient. 
             the keys for the dictionary are "grad_"+<par_name> (e.g., "grad_vp")
         """
-
+        
         g: dict[str: np.ndarray] = self.load_gradient()
         h: dict[str: np.ndarray] = {}
         for key in g.keys():
@@ -473,13 +475,13 @@ class optimize_base:
             Pass means that the model was updated successfully
         """
 
-        # set parameters for c (to check Armijo condition) and tau (to update alpha)
-        c = 10**-4
+        # set tau (to update alpha)
         tau = 0.5   
 
         # load the model, gradient, and descent direction
+        model_init_path = "/".join([self.PATHS.OUTPUT, "model_" + "{:04d}".format(self.iter)])
         model_path = "/".join([self.PATHS.scratch_eval_misfit_path, "model"])
-        m = utils.load_model(model_path, self.PARAMS.invert_params)
+        m = utils.load_model(model_init_path, self.PARAMS.invert_params)
         g = self.load_gradient()
         h = self.get_descent_dir()
 
@@ -488,6 +490,9 @@ class optimize_base:
 
         # get bounds for alpha
         alpha_min, alpha_max = self.get_alpha_bounds(m, h)
+
+        # set parameter c for Armijo condition
+        c = (10**-4)/alpha_max
 
         # initialize alpha and residuals
         alpha = alpha_max

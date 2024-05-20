@@ -169,7 +169,30 @@ class solver_base:
                 capture_output=True
             )
 
-    def apply_precond(self) -> None: 
+
+    def export_smoothed_kernels(self) -> None:
+        """"
+        Copies the needed kernels from the scratch/eval_grad/sum_smooth folder to the scratch/eval_grad/gradient folder
+        """
+
+        for param in self.PARAMS.invert_params:
+
+                src_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.params_to_kernel_names[param]+"_smooth.bin"])
+                des_path = "/".join([self.PATHS.scratch_eval_grad_path, "gradient", "proc000000_grad_"+param+".bin"])
+                sp.run(
+                    ["cp", src_path, des_path],
+                    capture_output=True
+                )
+
+
+    def apply_precond(self, h: dict[str: np.ndarray]) -> dict[str: np.ndarray]: 
+        """
+        Applies the preconditioner to a dictionary of representaion of the descent direction
+        inputs: 
+            h: a dictionary representation of  the descent direction
+        outputs:
+            h: a dictionary representation of the preconditioned descent direction
+        """
 
         print("\nApplying Preconditioner \n")
 
@@ -178,15 +201,10 @@ class solver_base:
             hess_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.kernels_used[-1]+"_smooth.bin"])
             hess = utils.read_fortran_binary(hess_path)
 
-            for param in self.PARAMS.invert_params:
+            for key in h.keys():
+                h[key] = h[key]/hess
 
-                param_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.params_to_kernel_names[param]+"_smooth.bin"])
-                par = utils.read_fortran_binary(param_path)
-
-                par /= hess
-
-                out_path = "/".join([self.PATHS.scratch_eval_grad_path, "gradient", "proc000000_grad_"+param+".bin"])
-                utils.write_fortran_binary(out_path, par)
+        return h
 
         # setup case where preconditioner can be loaded from file
 
