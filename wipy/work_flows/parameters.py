@@ -3,7 +3,7 @@
 #########################
 
 solver: str = "specfem2d"       # options: specfem2d
-material: str = "acoustic"      # options: acoustic, elastic
+material: str = "elastic"      # options: acoustic, elastic
 n_events: int = 10              
 n_proc: int = -1                # -1 means that the miximum number of processors will be used  
 
@@ -13,7 +13,7 @@ n_proc: int = -1                # -1 means that the miximum number of processors
 
 filter: str = "lowpass"    # options: bandpass(freq_min, freq_max), lowpass(freq_max), highpass(freq_min)
 # freq_min: float = 1
-freq_max: float = 5.0
+freq_max: float = 10.0
 filter_order: int = 10
 
 mute: list[str] = []
@@ -35,23 +35,28 @@ max_iter: int = 50
 
 misfit: str = "NC_norm"                     # options: L2_norm, NC_norm
 
-smooth_v: float = 20.0
-smooth_h: float = 20.0
+smooth_v: float = 10.0
+smooth_h: float = 10.0
 
-precond: str =  "from_file"    # options: None, approx_hessian, from_file
+precond: str =  "approx_hessian"    # options: None, approx_hessian, from_file ***note gradients are devided by the precond in both cases
 
-invert_params: list[str] = ["vp"]    # options: vp, vs, rho
+invert_params: list[str] = ["vp", "vs"]    # options: vp, vs, rho
 
 # bounds fro listed parameters
 vp_bounds: list[float] = [299, 450]
+vs_bounds: list[float] = [150, 300]
 rho_bounds: list[float] = [250, 300]
+vp_vs_ratio_bounds: list[float] = [1.1, 3.0]
+scale_vs_from_vp: bool = True
 
 # max/min update (e.g., 0.1 means that the max/min update is 10% of the model being updated)
 max_update: float = 0.1
 min_update: float = 0.01
 
-# misc parameters
-# options: ["x", "z"] for elastic material,, ["p"] for acoustic material
-components: list[str] = ["p"]       
+#######################
+### misc parameters ###
+#######################
+# options: ["x", "z"] for elastic material, ["p"] for acoustic material 
+components: list[str] = ["x", "z"]       
 save_traces = True 
 

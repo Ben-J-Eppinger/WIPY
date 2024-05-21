@@ -353,8 +353,33 @@ class optimize_base:
             # check the upper bounds
             bol = m[key] > bounds[1]
             if sum(bol) > 0:
-                print(f"Setting {key} to always be above {bounds[1]}")
+                print(f"Setting {key} to always be below {bounds[1]}")
                 m[key][bol] = bounds[1]
+
+        # check vp_vs_ratio 
+        if self.PARAMS.material == "elastic":
+    
+            vp_vs_ratio = m["vp"] / m["vs"]
+
+            # check lower bound of vp-vs ratio
+            bol = vp_vs_ratio < self.PARAMS.vp_vs_ratio_bounds[0]
+            if sum(bol) > 0: 
+                if self.PARAMS.scale_vs_from_vp:
+                    print(f"Scaling vs from vp so that the vp-vs ration is grater than {self.PARAMS.vp_vs_ratio_bounds[0]}")
+                    m["vs"][bol] = m["vp"][bol] / self.PARAMS.vp_vs_ratio_bounds[0]
+                else:
+                    print(f"Scaling vp from vs so that the vp-vs ration is grater than {self.PARAMS.vp_vs_ratio_bounds[0]}")
+                    m["vp"][bol] = m["vs"][bol] * self.PARAMS.vp_vs_ratio_bounds[0]
+
+            # check upper bound of vp-vs ratio
+            bol = vp_vs_ratio > self.PARAMS.vp_vs_ratio_bounds[1]
+            if sum(bol) > 0: 
+                if self.PARAMS.scale_vs_from_vp:
+                    print(f"Scaling vs from vp so that the vp-vs ration is less than {self.PARAMS.vp_vs_ratio_bounds[0]}")
+                    m["vs"][bol] = m["vp"][bol] / self.PARAMS.vp_vs_ratio_bounds[1]
+                else:
+                    print(f"Scaling vp from vs so that the vp-vs ration is less than {self.PARAMS.vp_vs_ratio_bounds[0]}")
+                    m["vp"][bol] = m["vs"][bol] * self.PARAMS.vp_vs_ratio_bounds[1]
 
         return m
     

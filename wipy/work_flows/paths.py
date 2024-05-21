@@ -1,11 +1,11 @@
-wipy_root_path = "/home/beneppinger/WIPY_tests"
-solver_exec_path = "/home/beneppinger/WIPY_tests/specfem2d/bin"
-solver_data_path = "/home/beneppinger/WIPY_tests/specfem2d/DATA"
-obs_data_path = "/home/beneppinger/WIPY_tests/box_data"
+# Each directory path should end with a "/" 
+wipy_root_path = "/home/beneppinger/WIPY_tests/"
+solver_exec_path = "/home/beneppinger/specfem2d/bin/"
+solver_data_path = "/home/beneppinger/WIPY_tests/specfem2d/DATA/"
+obs_data_path = "/home/beneppinger/WIPY_tests/box_model_elastic/box_data/"
+# model_init_path = "/home/beneppinger/WIPY_tests/box_model_elastic/box_model/"
+# model_init_path = "/home/beneppinger/WIPY_tests/box_model_elastic/model_init/"
+model_init_path = "/home/beneppinger/WIPY_tests/box_model_elastic/box_model_5Hz/"
 
-model_init_path = "/home/beneppinger/WIPY_tests/model_init"
-# model_init_path = "/home/beneppinger/WIPY_tests/box_model_10Hz"
-# model_init_path = "/home/beneppinger/WIPY_tests/model_init_elastic"
-# model_init_path = "/home/beneppinger/WIPY_tests/box_model"
-
-precond_path = "/home/beneppinger/WIPY_tests/box_model_precond/precond.bin"
+# **note that the precond path is a parth to a file rather than to a directory
+# precond_path = "/home/beneppinger/WIPY_tests/box_model_precond/precond.bin"
