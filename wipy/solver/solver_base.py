@@ -199,15 +199,22 @@ class solver_base:
 
         if self.PARAMS.precond == "approx_hessian":
             
-            hess_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.kernels_used[-1]+"_smooth.bin"])
-            hess = utils.read_fortran_binary(hess_path)
+            hess_path: str = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.kernels_used[-1]+"_smooth.bin"])
+            hess: np.ndarray = utils.read_fortran_binary(hess_path)
 
             for key in h.keys():
                 h[key] = h[key]/hess
 
+        elif self.PARAMS.precond == "from_file":
+            
+            p = utils.read_fortran_binary(self.PATHS.precond_path)
+
+            for key in h.keys():
+                h[key] = h[key]/p
+
         return h
 
-        # setup case where preconditioner can be loaded from file
+        
 
 
 

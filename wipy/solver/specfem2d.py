@@ -65,6 +65,16 @@ class specfem2d(solver_base):
             par='SAVE_FORWARD',
             new_par='.true.'
         )        
+
+        if self.PARAMS.precond == "approx_hessian":
+            hess_par = ".true."
+        else:
+            hess_par = ".false."
+        super().setpar(
+            path="/".join([path, 'DATA', 'Par_file']),
+            par="APPROXIMATE_HESS_KL",
+            new_par=hess_par
+        )
         
         print("Calling specfem2d adjoint solver")
 
