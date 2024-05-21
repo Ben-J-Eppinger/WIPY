@@ -134,7 +134,7 @@ class solver_base:
         )
 
         # copy the cordinate, NPEC_ibool, and jacobian binary files the the sum folder so
-        # the smoother can be used
+        # the smoother can be used later
 
         names = ["proc000000_NSPEC_ibool.bin", 
                  "proc000000_jacobian.bin", 
@@ -179,6 +179,7 @@ class solver_base:
 
                 src_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.params_to_kernel_names[param]+"_smooth.bin"])
                 des_path = "/".join([self.PATHS.scratch_eval_grad_path, "gradient", "proc000000_grad_"+param+".bin"])
+
                 sp.run(
                     ["cp", src_path, des_path],
                     capture_output=True

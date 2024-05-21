@@ -12,7 +12,7 @@ class optimize_base:
 
     def __init__(self, base: base, PATHS: paths, PARAMS: params, preprocess: preprocess_base, adjoint: adjoint_base, solver: solver_base):
         """
-        Create an optimize_base object which holds multiple wipy classes. The optmize object will you use functionality from these classes to ivnert data. 
+        Create an optimize_base object which holds multiple wipy classes. The optmize object will use functionality from these classes to ivnert data. 
         """
         
         self.base = base
@@ -23,15 +23,17 @@ class optimize_base:
         self.solver = solver
         self.iter: int = 0
 
+        # special setup for LBFGS
         if self.PARAMS.optimize == "LBFGS":
             self.LBFGS_mem = 1
-            self.LBFGS_mem_max = 6
-        
+            self.LBFGS_mem_max = 6        
+
+        # initialize the scratch/opt.log file
         with open("/".join([self.PATHS.wipy_root_path, "scratch", "opt.log"]), "w") as fid:
             fid.write("iter     step length     misfit\n")
 
 
-    def eval_misfit(self, alpha=None):
+    def eval_misfit(self, alpha: float = None):
         """"
         Calls the forward solver, preprocesses the data, computes the misfits, and writes
         misfit to the scratch/opt.log file 
@@ -50,6 +52,7 @@ class optimize_base:
         misfit = self.adjoint.sum_residuals() 
         
         # write misfits to the opt.log file
+        # note that the if statement below distinguishes between writing an opt.log before and during a line search
         path = "/".join([self.PATHS.wipy_root_path, "scratch", "opt.log"])
         if alpha == None:
             var = "-"*11
@@ -63,23 +66,22 @@ class optimize_base:
     def comp_gradient(self) -> None:
         """
         Calls self.eval_misfit() which will in inturn call the forward solver, preprocesses the data, compute the misfits/adjiont sources
-        Goes on to call the adjiont solver, process the kernels (sum kernels across events and smooths summed kernels) and precondititions the gradient
-        * notes the gradient is written in the scratch/eval_grad/gradient folder after the preconditioner is applies
+        Goes on to call the adjiont solver, process the kernels (sum kernels across events and smooths summed kernels) and create the gradient
+        * notes the gradient is written in the scratch/eval_grad/gradient folder before the preconditioner is applied
         """
+
         # generate observed synthetic data, preprocessing data, and compute the misfit and ajdiont sources
         self.eval_misfit()
         
         # prepare to run adjoint solver 
         self.base.import_adjoint_sources()
 
-        # call adjoint solver and do basic kernel processing
+        # call adjoint solver, do basic kernel processing, and save the gradient
         self.solver.call_solver(self.solver.adjoint)
         self.solver.export_kernels()
         self.solver.combine_kernels()
         self.solver.smooth_kernels()
         self.solver.export_smoothed_kernels()
-
-        # save gradient
         self.save_gadient()
 
 
@@ -94,7 +96,7 @@ class optimize_base:
             the keys for the dictions are "grad_"+<par_name> (e.g., "grad_vp")
         """
 
-        # using gradient descnet
+        # using gradient descent
         if self.PARAMS.optimize == "GD":
             h = self.get_GD_descent_dir()
 
@@ -120,22 +122,25 @@ class optimize_base:
         inputs:
             None:
         outputs: 
-            h: a dictionary representation the gradient. 
+            h: a dictionary representation of the gradient. 
             the keys for the dictionary are "grad_"+<par_name> (e.g., "grad_vp")
         """
-        grad_path = "/".join([self.PATHS.scratch_eval_grad_path, "gradient"])
-        pars = deepcopy(self.PARAMS.invert_params)
+
+        grad_path: str = "/".join([self.PATHS.scratch_eval_grad_path, "gradient"])
+
+        # change parameter names to match those used for the gradient dictionary
+        pars: list[str] = deepcopy(self.PARAMS.invert_params)
         for i in range(len(pars)):
             pars[i] = "grad_" + pars[i]
 
-        g = utils.load_model(model_path=grad_path, pars=pars)
+        g: dict[str: np.ndarray] = utils.load_model(model_path=grad_path, pars=pars)
 
         return g
 
 
     def save_gadient(self) -> None: 
         """
-        Copies preconditioned gradient from scratch/eval_grad/gradient to OUTPUT/gradient_<iter#>
+        Copies the binary files for the gradient from scratch/eval_grad/gradient to OUTPUT/gradient_<iter#>
         """
 
         # make directory for gradient to store in
@@ -181,15 +186,15 @@ class optimize_base:
             h: a dictionary representation the descent direction.
         """
 
-        pars = []
+        pars: list[str] = []
         for par in self.PARAMS.invert_params:
             pars.append("grad_" + par)
 
-        it = self.iter
-        l = self.LBFGS_mem           # maxium number of past gradients to use when constructing the descent direction
+        it: int = self.iter
+        l: int = self.LBFGS_mem           # maxium number of past gradients to use when constructing the descent direction
 
         # get j
-        j = min(it, l)
+        j: int = min(it, l)
 
         # fill out s and y
         s: dict[str: np.ndarray] = {}
@@ -201,43 +206,48 @@ class optimize_base:
 
         # fill out lambda and create q
         lamb: dict[str: float] = {}
-        grad_path = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(it)])
-        q = utils.load_model(grad_path, pars)
-        q = self.dict2vec(q)
+        grad_path: str = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(it)])
+        q: dict[str: np.ndarray] = utils.load_model(grad_path, pars)
+        q: np.ndarray = self.dict2vec(q)
 
         for i in range(it-1, it-j-1, -1): 
             lamb[i] = np.inner(s[i], q)/np.inner(y[i], s[i])
             q -= lamb[i]*y[i]
 
         # create gamma and initialize r
-        gamma = np.inner(s[it-1], y[it-1])/np.inner(y[it-1], y[it-1])
-        r = gamma*q
+        gamma: float = np.inner(s[it-1], y[it-1])/np.inner(y[it-1], y[it-1])
+        r: np.ndarray = gamma*q
 
         # calc mu and r
         for i in range(it-j, it):
-            mu = np.inner(y[i], r)/np.inner(y[i], s[i])
+            mu: float = np.inner(y[i], r)/np.inner(y[i], s[i])
             r += s[i]*(lamb[i] - mu)
 
         # output the descent direction as a dictionary
-        h = -r
-        h = self.vec2dict(h, pars)
+        h: np.ndarray = -r
+        h: dict[str: np.ndarray] = self.vec2dict(h, pars)
 
         return h
 
 
     def get_s_sub(self, i: int, pars) -> np.ndarray:
         """
-        Helper function get_LBFGS_descent_dir 
+        Helper function get_LBFGS_descent_dir: calculates the difference between two models from the ith+1 and ith iterations
+        inputs: 
+            i: the iteration number
+            pars: the parameter keys
+        outputs: 
+            s_sub: the difference between the ith+1 and ith models as a vector representation 
         """
 
-        model_path_1 = "/".join([self.PATHS.OUTPUT, "model_" +  "{:04d}".format(i+1)])
-        model_path_0 = "/".join([self.PATHS.OUTPUT, "model_" +  "{:04d}".format(i)])
+        model_path_1: str = "/".join([self.PATHS.OUTPUT, "model_" +  "{:04d}".format(i+1)])
+        model_path_0: str = "/".join([self.PATHS.OUTPUT, "model_" +  "{:04d}".format(i)])
 
-        m1 = utils.load_model(model_path_1, pars)
-        m1 = self.dict2vec(m1)
+        m1: dict[str: np.ndarray] = utils.load_model(model_path_1, pars)
+        m1: np.ndarray = self.dict2vec(m1)
         
-        m0 = utils.load_model(model_path_0, pars)
-        m0 = self.dict2vec(m0)
+        m0: dict[str: np.ndarray] = utils.load_model(model_path_0, pars)
+        m0: np.ndarray = self.dict2vec(m0)
 
         s_sub = m1 - m0
 
@@ -246,17 +256,22 @@ class optimize_base:
 
     def get_y_sub(self, i: int, pars) -> np.ndarray:
         """
-        Helper function get_LBFGS_descent_dir
+        Helper function get_LBFGS_descent_dir: calculates the difference between two gradients from the ith+1 and ith iterations
+        inputs: 
+            i: the iteration number
+            pars: the parameter keys
+        outputs: 
+            y_sub: the difference between the ith+1 and ith gradients as a vector representation 
         """
 
-        grad_path_1 = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(i+1)])
-        grad_path_0 = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(i)])
+        grad_path_1: str = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(i+1)])
+        grad_path_0: str = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(i)])
 
-        g1 = utils.load_model(grad_path_1, pars)
-        g1 = self.dict2vec(g1)
+        g1: dict[str: np.ndarray] = utils.load_model(grad_path_1, pars)
+        g1: np.ndarray = self.dict2vec(g1)
         
-        g0 = utils.load_model(grad_path_0, pars)
-        g0 = self.dict2vec(g0)
+        g0: dict[str: np.ndarray] = utils.load_model(grad_path_0, pars)
+        g0: np.ndarray = self.dict2vec(g0)
 
         y_sub = g1 - g0
 
@@ -265,7 +280,7 @@ class optimize_base:
 
     def vec2dict(self, vec: np.ndarray, pars: list[str]) -> dict[str: np.ndarray]:
         """
-        helper function for get_LBFGS_descent_dir
+        helper function for get_LBFGS_descent_dir: converts a dictionary represenation of a model/gradient to its vector representation
         """
 
         d: dict[str: np.ndarray] = {}
@@ -288,7 +303,7 @@ class optimize_base:
             (with all the data for each parameter concatenated into one vector)
         """
 
-        vec = np.zeros(0)
+        vec: np.ndarray = np.zeros(0)
         
         for key in dict.keys():
             vec = np.append(vec, dict[key])
@@ -306,10 +321,10 @@ class optimize_base:
             theta: measure of how parallel the gradient and descent direction are
         """
        
-        h_vec = self.dict2vec(h)
-        g_vec = self.dict2vec(g)
+        h_vec: np.ndarray = self.dict2vec(h)
+        g_vec: np.ndarray = self.dict2vec(g)
 
-        theta = np.dot(h_vec, g_vec) / (np.linalg.norm(h_vec) * np.linalg.norm(g_vec))
+        theta: float = np.dot(h_vec, g_vec) / (np.linalg.norm(h_vec) * np.linalg.norm(g_vec))
 
         return theta
     
@@ -327,7 +342,7 @@ class optimize_base:
         for key in m.keys():
 
             # get the bounds for the parameter
-            bounds = getattr(self.PARAMS, key+"_bounds")
+            bounds: list[float] = getattr(self.PARAMS, key+"_bounds")
 
             # check the lower bound
             bol = m[key] < bounds[0]
@@ -356,18 +371,18 @@ class optimize_base:
             alpha_min: the minimum steplength that will bound model updates such that ||m + alpha*h||_inf >= ||m||_inf + min_update*||m||_inf
         """
 
-        alpha_max = np.inf
+        alpha_max: float = np.inf
 
         for key in m.keys():
 
             key1 = key
             key2 = "grad_" + key1
 
-            a = self.PARAMS.max_update * np.linalg.norm(m[key1], ord=np.inf) / np.linalg.norm(h[key2],ord=np.inf)
+            a: float = self.PARAMS.max_update * np.linalg.norm(m[key1], ord=np.inf) / np.linalg.norm(h[key2],ord=np.inf)
                 
             alpha_max = min(a, alpha_max)
 
-        alpha_min = alpha_max * self.PARAMS.min_update / self.PARAMS.max_update
+        alpha_min: float = alpha_max * self.PARAMS.min_update / self.PARAMS.max_update
 
         return alpha_min, alpha_max
     
@@ -383,7 +398,7 @@ class optimize_base:
             m_test: the perturbed model 
         """
 
-        m_test = deepcopy(m)
+        m_test: dict[str: np.ndarray] = deepcopy(m)
 
         for key in m.keys():
             grad_key = "grad_" + key
@@ -394,12 +409,12 @@ class optimize_base:
 
     def export_model(self, m: dict[str: np.ndarray]) -> None:
         """
-        Saves a dictionary representation of a model to the the OUTPUT directory 
+        Saves a dictionary representation of a model to the the OUTPUT directory as binary files
         inputs: 
             m: a dictionary represntation of a model
         """
 
-        save_path = "/".join([self.PATHS.OUTPUT, "model_{:04d}".format(self.iter)])
+        save_path: str = "/".join([self.PATHS.OUTPUT, "model_{:04d}".format(self.iter)])
 
         sp.run(
             ["mkdir", "model_{:04d}".format(self.iter)],
@@ -415,7 +430,7 @@ class optimize_base:
         copies traces from scratch to OUTPUT folder
         """
 
-        save_path = "/".join([self.PATHS.OUTPUT, "traces_{:04d}".format(self.iter)])
+        save_path: str = "/".join([self.PATHS.OUTPUT, "traces_{:04d}".format(self.iter)])
 
         sp.run(
             ["mkdir", "traces_{:04d}".format(self.iter)],
@@ -434,8 +449,8 @@ class optimize_base:
         copies residuals from scratch to OUTPUT folder
         """
 
-        save_path = "/".join([self.PATHS.OUTPUT, "residuals_{:04d}".format(self.iter)])
-        src_path = "/".join([self.PATHS.scratch_eval_misfit_path, "residuals"])
+        save_path: str = "/".join([self.PATHS.OUTPUT, "residuals_{:04d}".format(self.iter)])
+        src_path: str = "/".join([self.PATHS.scratch_eval_misfit_path, "residuals"])
 
         sp.run(
             ["mkdir", "residuals_{:04d}".format(self.iter)], 
@@ -454,11 +469,11 @@ class optimize_base:
         inputs:
             iter: the iteration number of the inversion from which we desire the residuals 
         """
-        resid_paths = ["/".join([self.PATHS.OUTPUT, "residuals_{:04d}".format(iter), "residuals", "{:06d}".format(num)]) for num in range(self.PARAMS.n_events)]
+        resid_paths: list[str] = ["/".join([self.PATHS.OUTPUT, "residuals_{:04d}".format(iter), "residuals", "{:06d}".format(num)]) for num in range(self.PARAMS.n_events)]
 
-        misfit = 0
+        misfit: float = 0.0
         for path in resid_paths:
-            m = np.sum(np.loadtxt(path))
+            m: float = np.sum(np.loadtxt(path))
             misfit += m
 
         misfit /= self.PARAMS.n_events
@@ -468,7 +483,8 @@ class optimize_base:
 
     def backtrack_linesearch(self) -> str:
         """
-        updates the model via a backtracking line search
+        Updates the model via a backtracking line search. A good alpha is found by chacking the Armijo condition.
+        When using LBGFS, there is a restart condition if the line search fails.
         outputs: 
             status which will equal either "Fail" or "Pass". 
             Fail means that no scaling of alpha could sufficently decrease the misfit
@@ -476,36 +492,36 @@ class optimize_base:
         """
 
         # set tau (to update alpha)
-        tau = 0.5   
+        tau: float = 0.5   
 
         # load the model, gradient, and descent direction
-        model_init_path = "/".join([self.PATHS.OUTPUT, "model_" + "{:04d}".format(self.iter)])
-        model_path = "/".join([self.PATHS.scratch_eval_misfit_path, "model"])
-        m = utils.load_model(model_init_path, self.PARAMS.invert_params)
-        g = self.load_gradient()
-        h = self.get_descent_dir()
+        model_init_path: str = "/".join([self.PATHS.OUTPUT, "model_" + "{:04d}".format(self.iter)])
+        model_path: str = "/".join([self.PATHS.scratch_eval_misfit_path, "model"])
+        m: dict[str: np.ndarray] = utils.load_model(model_init_path, self.PARAMS.invert_params)
+        g: dict[str: np.ndarray] = self.load_gradient()
+        h: dict[str: np.ndarray] = self.get_descent_dir()
 
         # calculate theta
-        theta = self.calc_theta(g, h)
+        theta: float = self.calc_theta(g, h)
 
         # get bounds for alpha
         alpha_min, alpha_max = self.get_alpha_bounds(m, h)
 
         # set parameter c for Armijo condition
-        c = (10**-4)/alpha_max
+        c: float = (10**-4)/alpha_max
 
         # initialize alpha and residuals
-        alpha = alpha_max
-        residuals = [self.get_iter_misfit(self.iter)]
+        alpha: float = alpha_max
+        residuals: list[float] = [self.get_iter_misfit(self.iter)]
 
         # begin line search
         while alpha > alpha_min:
 
             # update model
-            m_test = self.perturb_model(m, h, alpha)
+            m_test: dict[str: np.ndarray] = self.perturb_model(m, h, alpha)
 
             # check model
-            m_test = self.check_model(m_test)
+            m_test: dict[str: np.ndarray] = self.check_model(m_test)
 
             # write model
             utils.write_model(model_path, m_test)
@@ -537,21 +553,22 @@ class optimize_base:
                 # update alpha
                 alpha *= tau
 
+        # cases for if we get out of the while loop without finding a good alpha 
+                
         if self.PARAMS.optimize =="GD": 
             return "Fail"
         
-        elif self.PARAMS.optimize == "LBFGS":
-
-            # add blank line to opt.log file
+        elif self.PARAMS.optimize == "LBFGS":   #  restart using gradient descent
+            # note in opt.log file
             with open("/".join([self.PATHS.wipy_root_path, "scratch", "opt.log"]), "a") as fid:
                 fid.write("restart using GD \n")
                 
             self.PARAMS.optimize = "GD"
             print("line search failed: switching to gradient descent \n")
-            status = self.backtrack_linesearch() 
+            status: str = self.backtrack_linesearch() 
             
             if status == "Pass":
-                self.PARAMS.optimize = "LBFGS"
+                self.PARAMS.optimize = "LBFGS"  # switch back to LBFGS
                 self.LBFGS_mem = 1
                 print("resart succeeded: switching back to LBFGS \n")
             
