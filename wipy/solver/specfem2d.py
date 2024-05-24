@@ -1,5 +1,7 @@
 from wipy.solver.solver_base import solver_base # import to solver base
+from wipy.wipy_utils import utils
 import subprocess as sp
+import numpy as np
 
 class specfem2d(solver_base):
 
@@ -85,4 +87,31 @@ class specfem2d(solver_base):
         )
     
 
- 
+    def smooth_kernels(self) -> None:
+        """
+        smooth the kerenels in the scratch/eval_grad/sum folder and 
+        outputs them in the sctratch/eval_grad/smooth folder
+        """
+
+        input_path = "/".join([self.PATHS.scratch_eval_grad_path, "sum"])
+
+        out_path_base = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth"])
+
+        pars = self.PARAMS.kernels_used
+
+        m = utils.load_model(input_path, ["x", "z"] + pars)
+
+        for par in pars:
+
+            print("\nsmoothing " + par)
+
+            g = utils.smooth_par(
+                m, 
+                par, 
+                self.PARAMS.smooth_h/np.sqrt(8), 
+                self.PARAMS.smooth_v/np.sqrt(8)
+            )
+
+            out_path = out_path_base + "/proc000000_" + par + "_smooth.bin"
+
+            utils.write_fortran_binary(out_path, g)

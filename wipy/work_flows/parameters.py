@@ -67,5 +67,5 @@ min_update: float = 0.01
 #######################
 # options: ["x", "z"] for elastic material, ["p"] for acoustic material 
 components: list[str] = ["p"]       
-save_traces: bool = True 
+save_traces = True 
 

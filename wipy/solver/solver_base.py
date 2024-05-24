@@ -147,28 +147,6 @@ class solver_base:
                 cwd="/".join([self.PATHS.scratch_solver_path, "000000", "DATA"])
             )
 
-    def smooth_kernels(self) -> None:
-        """"
-        smooth the kerenels in the scratch/eval_grad/sum folder and output them in the sctratch/eval_grad/smooth folder
-        by call the smoother from the sctratch/solver/000000 folder
-        """
-
-        for param in self.PARAMS.kernels_used:
-
-            command = ["./bin/xsmooth_sem", 
-                       "{:.2f}".format(self.PARAMS.smooth_h/np.sqrt(8)), 
-                       "{:.2f}".format(self.PARAMS.smooth_v/np.sqrt(8)),
-                       param, 
-                       "/".join([self.PATHS.scratch_eval_grad_path, "sum"]),
-                       "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth"]),
-                       "true"]
-            
-            sp.run(
-                command,
-                cwd="/".join([self.PATHS.scratch_solver_path, "000000"]),
-                capture_output=True
-            )
-
 
     def export_smoothed_kernels(self) -> None:
         """"

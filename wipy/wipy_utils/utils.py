@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+import scipy
 from scipy.interpolate import griddata
 import obspy
 from obspy.core.stream import Stream
@@ -121,3 +122,77 @@ def plot_traces(stream: Stream, gain: int = 1, line_spec: str = "k-") -> None:
             t, 
             line_spec,
         )
+
+
+def grid_vect(x: np.ndarray, z: np.ndarray, f: np.ndarray):
+    """"
+    Grids a vector, f, based on the x and z coordinates of the vector.
+    inputs:
+        x: x coordinates of the vector
+        z: z coordinates of the vector
+        f: vector to be gridded
+    outputs:
+        f: gridded vector
+        grid_x: x coordinates of the grid
+        grid_z: z coordinates of the grid
+        spac: spacing between grid points
+    """
+
+    # get average spaceing between points
+    delta_x = np.diff(x)
+    delta_x = delta_x[delta_x != 0]
+
+    delta_z = np.diff(z)
+    delta_z = delta_z[delta_z != 0]
+
+    spac = np.mean([np.median(delta_x), np.median(delta_z)])
+
+    # grid the vector
+    x_vec = np.arange(
+        start=np.min(x),
+        stop=np.max(x)+spac,
+        step=spac
+        )
+
+    z_vec = np.arange(
+        start=np.min(z),
+        stop=np.max(z)+spac,
+        step=spac
+        )
+
+    grid_x, grid_z = np.meshgrid(x_vec, z_vec,)
+
+    f = scipy.interpolate.griddata(
+        points=(x, z),
+        values=f,
+        xi=(grid_x, grid_z),
+        method='nearest',
+    )
+
+    return f, grid_x, grid_z, spac
+
+
+
+def smooth_par(m: dict[str: np.array], par: str, sigma_x, simga_y) -> np.array:
+    """
+    Smooths a parameter from a dictionary representation of a model.
+    inputs:
+        m: dictionary representation of a model
+        par: parameter to be smoothed
+        sigma_x: sigma value for the x direction
+        sigma_y: sigma value for the y direction
+    outputs:
+        g: smoothed field as a 1D array
+    """
+
+    # grid the vector
+    f, grid_x, grid_z, spac = grid_vect(m["x"], m["z"], m[par])    
+
+    # smooth the gridded field
+    f_smooth = scipy.ndimage.gaussian_filter(f, sigma=(sigma_x/spac, simga_y/spac))
+
+    # interpolate the smoothed gridded field back onto the vector 
+    interp = scipy.interpolate.LinearNDInterpolator(list(zip(grid_x.flatten(), grid_z.flatten())), f_smooth.flatten())
+    g = interp(m['x'], m['z'])
+
+    return g
