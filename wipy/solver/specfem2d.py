@@ -31,7 +31,7 @@ class specfem2d(solver_base):
             new_par=seismotype
         )
         
-        print("Calling specfem2d forwad solver")
+        print("Calling specfem2d forward solver")
 
         # run the mesher
         sp.run(

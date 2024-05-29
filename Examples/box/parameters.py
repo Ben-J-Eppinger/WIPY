@@ -5,7 +5,7 @@
 solver: str = "specfem2d"       # options: specfem2d
 material: str = "acoustic"      # options: acoustic, elastic
 n_events: int = 10              
-n_proc: int = -1                # -1 means that the miximum number of processors will be used  
+n_proc: int = -1                # -1 means that the minumum number of processors will be used  
 
 #############################
 ### preprocess parameters ###

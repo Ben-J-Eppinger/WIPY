@@ -595,7 +595,7 @@ class optimize_base:
             if status == "Pass":
                 self.PARAMS.optimize = "LBFGS"  # switch back to LBFGS
                 self.LBFGS_mem = 1
-                print("resart succeeded: switching back to LBFGS \n")
+                print("restart succeeded: switching back to LBFGS \n")
             
             return status
 
