@@ -4,8 +4,8 @@
 
 solver: str = "specfem2d"       # options: specfem2d
 material: str = "acoustic"      # options: acoustic, elastic
-n_events: int = 10              
-n_proc: int = -1                # -1 means that the miximum number of processors will be used  
+n_events: int = 26              
+n_proc: int = -1                # -1 means that the minumum number of processors will be used  
 
 #############################
 ### preprocess parameters ###
@@ -15,7 +15,7 @@ n_proc: int = -1                # -1 means that the miximum number of processors
 # options: "bandpass", "lowpass", "highpass", or None
 filter: str = "lowpass"    
 # freq_min: float = 1
-freq_max: float = 5.0
+freq_max: float = 2.0
 filter_order: int = 10
 
 # muting
@@ -38,24 +38,24 @@ normalize = ["trace_normalize", "event_normalize"]
 # options: GD (gradient descent), LBFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno)
 optimize: str = "LBFGS"                        
 
-max_iter: int = 50
+max_iter: int = 100
 
 # misfit function
 # options: L2_norm, NC_norm
 misfit: str = "NC_norm"                     
 
-smooth_v: float = 20.0
-smooth_h: float = 20.0
+smooth_v: float = 300.0
+smooth_h: float = 300.0
 
 precond: str =  "approx_hessian"    # options: None, approx_hessian, from_file ***note gradients are devided by the precond in both cases
 
 invert_params: list[str] = ["vp"]    # options: vp, vs, rho
 
 # bounds fro listed parameters
-vp_bounds: list[float] = [299, 450]
-vs_bounds: list[float] = [150, 300]
-rho_bounds: list[float] = [250, 300]
-vp_vs_ratio_bounds: list[float] = [1.1, 3.0]
+vp_bounds: list[float] = [1500.0, 4700.0]
+vs_bounds: list[float] = []
+rho_bounds: list[float] = [0.9, 1.1]
+vp_vs_ratio_bounds: list[float] = []
 scale_vs_from_vp: bool = True
 
 # max/min update (e.g., 0.1 means that the max/min update is 10% of the model being updated)
@@ -67,5 +67,5 @@ min_update: float = 0.01
 #######################
 # options: ["x", "z"] for elastic material, ["p"] for acoustic material 
 components: list[str] = ["p"]       
-save_traces = True 
+save_traces: bool = True 
 

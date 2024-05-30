@@ -124,6 +124,24 @@ def plot_traces(stream: Stream, gain: int = 1, line_spec: str = "k-") -> None:
         )
 
 
+def plot_image(stream: Stream, clip: float, cmap="gray") -> None: 
+    """
+    plot obspy stream objects for shot gathers as an image
+    """
+
+    Nr = len(stream.traces)
+    Nt = stream.traces[0].stats.npts
+
+    I = np.zeros((Nt, Nr))
+
+    for i in range(Nr):
+        I[:, i] = stream.traces[i].data
+
+    plt.imshow(I, aspect="auto", cmap=cmap, 
+               vmax=np.max(np.abs(I))*clip,
+               vmin=-np.max(np.abs(I))*clip)
+
+
 def grid_vect(x: np.ndarray, z: np.ndarray, f: np.ndarray):
     """"
     Grids a vector, f, based on the x and z coordinates of the vector.
