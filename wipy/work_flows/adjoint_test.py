@@ -1,46 +1,60 @@
 from wipy.base import base, paths, params
+import subprocess as sp
 
 # initialize the wipy paths and params classes (these will read your input files)
 PATHS = paths()
 PARAMS = params()
 
-# create a wipy base object using the base class and run the clean and setup methods
-b = base(PATHS, PARAMS)
-b.clean()
-b.setup()
-
 # import the solver specifieid in the parameters.py file 
 _temp = __import__(".".join(["wipy", "solver", PARAMS.solver]), fromlist=PARAMS.solver)
 solver_class = getattr(_temp, PARAMS.solver)
 
-# initialize a solver object and use it to do forward modeling
-s = solver_class(PATHS, PARAMS)
-s.call_solver(s.forward)
-s.export_traces()
-
 # import preprocessor
 from wipy.preprocess.preprocess_base import preprocess_base
 
-# create a preprocessor object
-p = preprocess_base(PATHS, PARAMS)
-
-# preprocess the observed and synthetic data
-p.call_preprocessor(data_type='obs')
-p.call_preprocessor(data_type='syn')
-
-
-# import the adjoint class
+# import the adjoint module
 from wipy.adjoint.adjoint_base import adjoint_base
 
-# create a adjoint_base object
+# import the optmizse module
+from wipy.optimize.optimize_base import optimize_base
+
+# import wipy utils
+from wipy.wipy_utils import utils
+
+# initialize the base variable
+b = base(PATHS, PARAMS)
+b.clean()
+b.setup()
+
+# intialize the sovler class
+s = solver_class(PATHS, PARAMS)
+
+# initialize the preprocess calss
+p = preprocess_base(PATHS, PARAMS)
+
+# inititialize the adjiont class
 a = adjoint_base(PATHS, PARAMS)
 
-# calculate misfits and adjoint sources and then import them
-a.comp_all_misfits_and_adjoint_sources()
-b.import_adjoint_sources()
+# initialize the optimize class
+o = optimize_base(base=b, 
+                  PATHS=PATHS, 
+                  PARAMS=PARAMS,
+                  preprocess=p,
+                  adjoint=a,
+                  solver=s)
 
-# call adjoint solver and do basic kernel processing
-s.call_solver(s.adjoint)
-s.export_kernels()
-s.combine_kernels()
-s.smooth_kernels()
+# save the initial model
+m_init = utils.load_model(PATHS.model_init_path, PARAMS.invert_params)
+o.export_model(m_init)
+    
+# compute gradient
+o.comp_gradient()
+
+# precondition the gradient
+g = o.load_gradient()
+g = o.solver.apply_precond(g)
+
+# save gradient 
+out_path = "/".join([o.PATHS.OUTPUT, "grad_precond"])
+sp.run(["mkdir", out_path])
+utils.write_model(model_path=out_path, model=g)
