@@ -13,23 +13,23 @@ n_proc: int = -1                # -1 means that the minumum number of processors
 
 # filtering
 # options: "bandpass", "lowpass", "highpass", or None
-filter: str = "lowpass"    
+filter: str = None
 # freq_min: float = 1
 freq_max: float = 2.0
 filter_order: int = 10
 
 # muting
 # options: "mute_far_offsets", "mute_short_offsets", "mute_above_func", "mute_below_func"
-mute: list[str] = ["mute_short_offsets"]
-max_offset: float = 180
-min_offset: float = 5
+mute: list[str] = []
+max_offset: float = 180.0
+min_offset: float = 5.0
 mute_above_func = lambda offset: 0.2 + 0.00666*offset
 mute_below_func = lambda offset: 0.0 + 0.00666*offset
 t_taper: float = 0.01
 
 # normalization
 # options: "trace_normalize", "event_normalize"
-normalize = ["trace_normalize", "event_normalize"]
+normalize = []
 
 ############################
 ### inversion parameters ###
@@ -41,15 +41,15 @@ optimize: str = "LBFGS"
 max_iter: int = 100
 
 # misfit function
-# options: L2_norm, NC_norm
-misfit: str = "NC_norm"                     
+# options: L2_norm, NC_norm, backproject
+misfit: str = "backproject"                     
 
-smooth_v: float = 300.0
-smooth_h: float = 300.0
+smooth_v: float = 1.0
+smooth_h: float = 1.0
 
 precond: str =  "approx_hessian"    # options: None, approx_hessian, from_file ***note gradients are devided by the precond in both cases
 
-invert_params: list[str] = ["vp"]    # options: vp, vs, rho
+invert_params: list[str] = ["vp", "rho"]    # options: vp, vs, rho
 
 # bounds fro listed parameters
 vp_bounds: list[float] = [1500.0, 4700.0]

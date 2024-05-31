@@ -75,7 +75,7 @@ def write_model(model_path: str, model: dict[str: np.array]) -> None:
         write_fortran_binary(path, model[key])
 
 
-def plot_model_fast(model: dict[str: np.array], spac: float, par: str) -> None:
+def plot_model_fast(model: dict[str: np.array], spac: float, par: str, bounds: list[float] = None, cmap="turbo") -> None:
     """
     Quick plotting function for dictionary representations of models
     """
@@ -101,10 +101,21 @@ def plot_model_fast(model: dict[str: np.array], spac: float, par: str) -> None:
         method='linear',
     )
 
-    plt.pcolormesh(grid_x, grid_z, f, shading='auto', cmap="turbo")
-    plt.colorbar()
-    plt.gca().set_aspect(1)
-    plt.show()
+    if bounds is None:
+        bounds = [np.min(model[par]), np.max(model[par])]
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    pcm = ax.pcolormesh(
+        grid_x,
+        grid_z,
+        f,
+        shading='auto',
+        cmap=cmap,
+        vmin=bounds[0],
+        vmax=bounds[1]
+    )
+    fig.colorbar(pcm, ax=ax, shrink=f.shape[0]/f.shape[1], extend='both')
+    ax.set_aspect(1)
 
 
 def plot_traces(stream: Stream, gain: int = 1, line_spec: str = "k-") -> None:

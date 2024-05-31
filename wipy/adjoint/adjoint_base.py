@@ -82,7 +82,7 @@ class adjoint_base:
             residuals = []
 
             if comp in self.PARAMS.components:
-                # if the component being are processing is one that is being inverted
+                # if the component being processing is one that is being inverted
                 # loop through each trace to calculate the misfit and adjoint source
                 for tr_ind in range(len(obs.traces)): 
 

@@ -51,3 +51,22 @@ def NC_norm(syn: np.ndarray, obs: np.ndarray, dt: float) -> tuple[np.ndarray, fl
 
     return adj, misfit
 
+
+def backproject(syn: np.ndarray, obs: np.ndarray, dt: float) -> tuple[np.ndarray, float]:
+    """
+    Compute adjoint sources that will backproject the observed data (veclocity rather than displacement)
+    inputs: 
+        syn: the synthetic data for a trace stored in a 1xNt numpy array
+        obs: the observed data for a trace stored in a 1xNT numpy array
+    outputs:
+        adj: the corresponding adjoint source for this synthetic-observed pair
+        misfit: is unimportant
+    """
+
+    adj = 0*obs                 # initialize adjoint source
+    adj[:-1] = np.diff(obs)     # compute the particle velocity from the displacement
+    adj[-1] = 0                 # implement a zero boundary condition
+
+    misfit = 0
+
+    return adj, misfit
