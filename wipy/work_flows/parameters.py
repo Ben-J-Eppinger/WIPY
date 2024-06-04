@@ -13,23 +13,23 @@ n_proc: int = -1                # -1 means that the minumum number of processors
 
 # filtering
 # options: "bandpass", "lowpass", "highpass", or None
-filter: str = None
+filter: str = "lowpass"
 # freq_min: float = 1
-freq_max: float = 2.0
+freq_max: float = 8.0
 filter_order: int = 10
 
 # muting
-# options: "mute_far_offsets", "mute_short_offsets", "mute_above_func", "mute_below_func"
-mute: list[str] = []
-max_offset: float = 180.0
-min_offset: float = 5.0
-mute_above_func = lambda offset: 0.2 + 0.00666*offset
-mute_below_func = lambda offset: 0.0 + 0.00666*offset
-t_taper: float = 0.01
+# options: "mute_far_offsets", "mute_short_offsets", "mute_above_func", "mute_below_func". []
+mute: list[str] = ["mute_below_func"]
+max_offset: float = 6000.0
+min_offset: float = 500.0
+mute_above_func = lambda offset: 1.0 + (9/13000)*offset
+mute_below_func = lambda offset: 1.0 + (9/13000)*offset
+t_taper: float = 0.5
 
 # normalization
-# options: "trace_normalize", "event_normalize"
-normalize = []
+# options: "trace_normalize", "event_normalize", []
+normalize = ["trace_normalize", "event_normalize"]
 
 ############################
 ### inversion parameters ###
@@ -42,17 +42,17 @@ max_iter: int = 100
 
 # misfit function
 # options: L2_norm, NC_norm, backproject
-misfit: str = "backproject"                     
+misfit: str = "NC_norm"                     
 
-smooth_v: float = 1.0
-smooth_h: float = 1.0
+smooth_h: float = 200.0
+smooth_v: float = 200.0
 
 precond: str =  "approx_hessian"    # options: None, approx_hessian, from_file ***note gradients are devided by the precond in both cases
 
-invert_params: list[str] = ["vp", "rho"]    # options: vp, vs, rho
+invert_params: list[str] = ["vp"]    # options: vp, vs, rho
 
 # bounds fro listed parameters
-vp_bounds: list[float] = [1500.0, 4700.0]
+vp_bounds: list[float] = [1000.0, 4700.0]
 vs_bounds: list[float] = []
 rho_bounds: list[float] = [0.9, 1.1]
 vp_vs_ratio_bounds: list[float] = []
@@ -67,5 +67,5 @@ min_update: float = 0.01
 #######################
 # options: ["x", "z"] for elastic material, ["p"] for acoustic material 
 components: list[str] = ["p"]       
-save_traces: bool = True 
+save_traces: bool = False 
 

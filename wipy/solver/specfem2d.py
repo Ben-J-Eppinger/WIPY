@@ -19,6 +19,13 @@ class specfem2d(solver_base):
             new_par='1'
         )
 
+        # set save forrward to true in case we want to do an adjoint simulation later
+        super().setpar(
+            path="/".join([path, 'DATA', 'Par_file']),
+            par='SAVE_FORWARD',
+            new_par='.true.'
+        )
+
         # if using elastic modeling output displacement seismograms and if using acoustic modeling output preasure seismograms
         if self.PARAMS.material == "elastic":
             seismotype = "1"
