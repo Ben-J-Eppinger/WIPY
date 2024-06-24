@@ -365,20 +365,20 @@ class optimize_base:
             bol = vp_vs_ratio < self.PARAMS.vp_vs_ratio_bounds[0]
             if sum(bol) > 0: 
                 if self.PARAMS.scale_vs_from_vp:
-                    print(f"Scaling vs from vp so that the vp-vs ration is grater than {self.PARAMS.vp_vs_ratio_bounds[0]}")
+                    print(f"Scaling vs from vp so that the vp-vs ratio is grater than {self.PARAMS.vp_vs_ratio_bounds[0]}")
                     m["vs"][bol] = m["vp"][bol] / self.PARAMS.vp_vs_ratio_bounds[0]
                 else:
-                    print(f"Scaling vp from vs so that the vp-vs ration is grater than {self.PARAMS.vp_vs_ratio_bounds[0]}")
+                    print(f"Scaling vp from vs so that the vp-vs ratio is grater than {self.PARAMS.vp_vs_ratio_bounds[0]}")
                     m["vp"][bol] = m["vs"][bol] * self.PARAMS.vp_vs_ratio_bounds[0]
 
             # check upper bound of vp-vs ratio
             bol = vp_vs_ratio > self.PARAMS.vp_vs_ratio_bounds[1]
             if sum(bol) > 0: 
                 if self.PARAMS.scale_vs_from_vp:
-                    print(f"Scaling vs from vp so that the vp-vs ration is less than {self.PARAMS.vp_vs_ratio_bounds[0]}")
+                    print(f"Scaling vs from vp so that the vp-vs ratio is less than {self.PARAMS.vp_vs_ratio_bounds[1]}")
                     m["vs"][bol] = m["vp"][bol] / self.PARAMS.vp_vs_ratio_bounds[1]
                 else:
-                    print(f"Scaling vp from vs so that the vp-vs ration is less than {self.PARAMS.vp_vs_ratio_bounds[0]}")
+                    print(f"Scaling vp from vs so that the vp-vs ratio is less than {self.PARAMS.vp_vs_ratio_bounds[1]}")
                     m["vp"][bol] = m["vs"][bol] * self.PARAMS.vp_vs_ratio_bounds[1]
 
         return m

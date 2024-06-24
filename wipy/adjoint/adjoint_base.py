@@ -75,25 +75,16 @@ class adjoint_base:
             # load synthetic and observed data and the time increment
             obs = obspy.read(obs_path, format="SU")
             syn = obspy.read(syn_path, format="SU")
-            dt = syn.traces[0].stats.delta
             
-            # initialize the adjoint source and residuals
-            adj = deepcopy(syn) 
-            residuals = []
-
             if comp in self.PARAMS.components:
-                # if the component being processing is one that is being inverted
-                # loop through each trace to calculate the misfit and adjoint source
-                for tr_ind in range(len(obs.traces)): 
-
-                    wadj, resid = self.misfit_func(syn.traces[tr_ind].data, obs.traces[tr_ind].data, dt)
-                    adj.traces[tr_ind].data = wadj
-                    residuals.append(resid)
-            
+                # if the component being processed is one that is being inverted
+                args = [syn, obs] + self.PARAMS.additional_misfit_parameters
+                adj, residuals = self.misfit_func(*args)
             else:
                 # otherwise, set all adjoint sources for this component to be 0
-                for tr_ind in range(len(obs.traces)): 
-                    adj.traces[tr_ind].data *= 0 
+                adj = deepcopy(syn) 
+                for trace in adj.traces: 
+                    trace.data *= 0 
 
             # write adjoint sources
             self.write_adjoint_sources(adj_path, adj)
