@@ -533,7 +533,7 @@ class optimize_base:
         alpha_min, alpha_max = self.get_alpha_bounds(m, h)
 
         # set parameter c for Armijo condition
-        c: float = (10**-4)/alpha_max
+        c: float = (10**-10)/alpha_max
 
         # initialize alpha and residuals
         alpha: float = alpha_max

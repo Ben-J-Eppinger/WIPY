@@ -294,7 +294,7 @@ def smooth_par(m: dict[str: np.array], par: str, sigma_x, sigma_y) -> np.ndarray
     return g
 
 
-def pick_synthetic_data(data: Stream, tol: float = 10**(-6)) -> np.ndarray:
+def pick_synthetic_data(data: Stream, tol: float = 10**(-3)) -> np.ndarray:
     """
     Naively picks data based on where the amplitude squared is larger than some tollerence level
     For this reason, it is recomended to use this function on noise free synthetic data only
@@ -308,9 +308,9 @@ def pick_synthetic_data(data: Stream, tol: float = 10**(-6)) -> np.ndarray:
     dt = data.traces[0].stats.delta
     picks = []
     for trace in data.traces:
-        dat_sqr = trace.data**2
-        A = np.max(dat_sqr)
-        bool =  dat_sqr > tol*A
+        abs_data = np.abs(trace.data)
+        A = np.max(abs_data)
+        bool =  abs_data > tol*A
         picks.append(np.argmax(bool)*dt)
 
     return np.array(picks)

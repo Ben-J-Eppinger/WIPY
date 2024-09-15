@@ -80,6 +80,8 @@ class adjoint_base:
                 # if the component being processed is one that is being inverted
                 args = [syn, obs] + self.PARAMS.additional_misfit_parameters
                 adj, residuals = self.misfit_func(*args)
+                # write residuals
+                self.write_residuals(residuals_path, residuals)
             else:
                 # otherwise, set all adjoint sources for this component to be 0
                 adj = deepcopy(syn) 
@@ -88,9 +90,6 @@ class adjoint_base:
 
             # write adjoint sources
             self.write_adjoint_sources(adj_path, adj)
-
-            # write residuals
-            self.write_residuals(residuals_path, residuals)
 
 
     def comp_all_misfits_and_adjoint_sources(self) -> None:
