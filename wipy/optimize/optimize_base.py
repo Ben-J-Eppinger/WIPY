@@ -403,9 +403,9 @@ class optimize_base:
             key1 = key
             key2 = "grad_" + key1
 
-            a: float = self.PARAMS.max_update * np.linalg.norm(m[key1], ord=np.inf) / np.linalg.norm(h[key2],ord=np.inf)
-                
-            alpha_max = min(a, alpha_max)
+            if np.sum(np.abs(h[key2])) > 0.0:
+                a: float = self.PARAMS.max_update * np.linalg.norm(m[key1], ord=np.inf) / np.linalg.norm(h[key2],ord=np.inf) 
+                alpha_max = min(a, alpha_max)
 
         alpha_min: float = alpha_max * self.PARAMS.min_update / self.PARAMS.max_update
 

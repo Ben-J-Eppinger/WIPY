@@ -23,7 +23,7 @@ class solver_base:
         for param in self.PARAMS.invert_params: 
             kernels_used.append(params_to_kernel_names[param])
 
-        # if using the approx hessian precond, append it to the end of teh kernels_used list
+        # if using the approx hessian precond, append it to the end of the kernels_used list
         if self.PARAMS.precond == "approx_hessian":
             if self.PARAMS.material == "elastic":
                 kernels_used.append("Hessian1_kernel")
@@ -181,14 +181,16 @@ class solver_base:
             hess: np.ndarray = utils.read_fortran_binary(hess_path)
 
             for key in h.keys():
-                h[key] = h[key]/hess
+                weight = self.PARAMS.invert_params_weights[key[5:]]
+                h[key] = weight*h[key]/hess
 
         elif self.PARAMS.precond == "from_file":
             
             p = utils.read_fortran_binary(self.PATHS.precond_path)
 
             for key in h.keys():
-                h[key] = h[key]/p
+                weight = self.PARAMS.invert_params_weights[key[5:]]
+                h[key] = weight*h[key]/p
 
         return h
 
