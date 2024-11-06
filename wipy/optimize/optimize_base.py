@@ -339,7 +339,6 @@ class optimize_base:
         beta: float = np.inner(g_hat, g_hat) / np.inner(g_hat-g_prev_hat, h_prev_hat)
         if beta <= beta_min:
             beta = 0.0
-        print(beta)
 
         # apply the preconditioner
         if self.PARAMS.precond is not None:
