@@ -109,9 +109,17 @@ class optimize_base:
                 # update LBFGS memory
                 self.LBFGS_mem = min(self.LBFGS_mem+1, self.LBFGS_mem_max)
 
-        # apply preconditioner
-        if self.PARAMS.precond is not None:
-            h = self.solver.apply_precond(h)
+        # using conjugate gradient
+        elif self.PARAMS.optimize == "CG":
+            if self.iter == 0:
+                h = self.get_GD_descent_dir()
+            elif self.iter > 0:
+                h = self.get_CG_descent_dir()
+
+        # save descent direction
+        des_path: str = "/".join([self.PATHS.OUTPUT,"desc_"+"{:04d}".format(self.iter)])
+        sp.run(["mkdir", des_path])
+        utils.write_model(des_path, h)
 
         return h
     
@@ -173,6 +181,10 @@ class optimize_base:
             v = -g[key]
             h[key] = v
 
+        # apply preconditioner
+        if self.PARAMS.precond is not None:
+            h = self.solver.apply_precond(h)
+
         return h
     
 
@@ -197,8 +209,8 @@ class optimize_base:
         j: int = min(it, l)
 
         # fill out s and y
-        s: dict[str: np.ndarray] = {}
-        y: dict[str: np.ndarray] = {}
+        s: dict[int: np.ndarray] = {}
+        y: dict[int: np.ndarray] = {}
 
         for i in range(it-1, it-j-1, -1):
             s[i] = self.get_s_sub(i, self.PARAMS.invert_params)
@@ -217,6 +229,12 @@ class optimize_base:
         # create gamma and initialize r
         gamma: float = np.inner(s[it-1], y[it-1])/np.inner(y[it-1], y[it-1])
         r: np.ndarray = gamma*q
+
+        # apply preconditioner
+        if self.PARAMS.precond is not None:
+            r = self.vec2dict(r, pars)          # convert r to a dictionary
+            r = self.solver.apply_precond(r)    # apply preconditioner to  r
+            r = self.dict2vec(r)                # convert r back to a vector
 
         # calc mu and r
         for i in range(it-j, it):
@@ -276,6 +294,66 @@ class optimize_base:
         y_sub = g1 - g0
 
         return y_sub
+
+
+    def get_CG_descent_dir(self) -> dict[str: np.ndarray]:
+        """
+        Get the descent direction for the conjugate gradient method
+        inputs:
+            None
+        outputs:
+            h: a dictionary representation of the descent direction
+        """
+
+        # assign the iteration number
+        it: int = self.iter
+
+        # assign a beta min parameter to automatically reset by switching to gradient descent
+        #  if conjugacy is lost
+        beta_min: float = 0.2
+
+        # get the parameters keys for gradient
+        pars: list[str] = []
+        for par in self.PARAMS.invert_params:
+            pars.append("grad_" + par)
+
+        # get the gradient
+        grad_path: str = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(it)])
+        g: dict[str: np.ndarray] = utils.load_model(grad_path, pars)
+        g: np.ndarray = self.dict2vec(g)
+
+        # get the previous gradient
+        prev_grad_path = "/".join([self.PATHS.OUTPUT, "grad_" +  "{:04d}".format(it-1)])
+        g_prev: dict[str: np.ndarray] = utils.load_model(prev_grad_path, pars)
+        g_prev: np.ndarray = self.dict2vec(g_prev)
+
+        # get the previous descent direction   
+        h_prev_path = "/".join([self.PATHS.OUTPUT, "desc_" +  "{:04d}".format(it-1)])
+        h_prev: dict[str: np.ndarray] = utils.load_model(h_prev_path, pars)
+        h_prev: np.ndarray = self.dict2vec(h_prev)
+
+        # compute beta
+        g_hat = g/np.linalg.norm(g) 
+        g_prev_hat = g_prev/np.linalg.norm(g_prev) 
+        h_prev_hat = h_prev/np.linalg.norm(h_prev) 
+        beta: float = np.inner(g_hat, g_hat) / np.inner(g_hat-g_prev_hat, h_prev_hat)
+        if beta <= beta_min:
+            beta = 0.0
+        print(beta)
+
+        # apply the preconditioner
+        if self.PARAMS.precond is not None:
+            g = self.vec2dict(g, pars)          # convert g to a dictionary
+            g = self.solver.apply_precond(g)    # apply preconditioner to g
+            g = self.dict2vec(g)                # convert g back to a vector
+
+        # compute the descent direction
+        h: np.ndarray = -g + beta*h_prev
+
+        # output the descent direction as a dictionary
+        h: dict[str: np.ndarray] = self.vec2dict(h, pars)
+
+        return h
 
 
     def vec2dict(self, vec: np.ndarray, pars: list[str]) -> dict[str: np.ndarray]:
@@ -581,6 +659,9 @@ class optimize_base:
         # cases for if we get out of the while loop without finding a good alpha 
                 
         if self.PARAMS.optimize =="GD": 
+            return "Fail"
+
+        if self.PARAMS.optimize == "CG":
             return "Fail"
         
         elif self.PARAMS.optimize == "LBFGS":   #  restart using gradient descent
