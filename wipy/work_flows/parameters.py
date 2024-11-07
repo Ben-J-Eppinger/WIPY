@@ -4,32 +4,32 @@
 
 solver: str = "specfem2d"       # options: specfem2d
 material: str = "elastic"      # options: acoustic, elastic
-n_events: int = 41              
-n_proc: int = -1                # -1 means that the maximum number of processors will be used  
+n_events: int = 10              
+n_proc: int = -1                # -1 means that the miximum number of processors will be used  
 
 #############################
 ### preprocess parameters ###
 #############################
 
-# filterings
+# filtering
 # options: "bandpass", "lowpass", "highpass", or None
-filter: str = "bandpass"
-freq_min: float = 5.0
-freq_max: float = 25.0
+filter: str = "lowpass"    
+# freq_min: float = 1
+freq_max: float = 20
 filter_order: int = 10
 
 # muting
-# options: "mute_far_offsets", "mute_short_offsets", "mute_above_func", "mute_below_func", []
-mute: list[str] = ["mute_far_offsets", "mute_short_offsets", "mute_above_func", "mute_below_func"]
-max_offset: float = 120.0  
-min_offset: float = 5.0
-mute_below_func = lambda offset: 0.125 + (0.22/200)*offset
-mute_above_func = lambda offset: 0.075 + (0.05/200)*offset
-t_taper: float = 0.05
+# options: "mute_far_offsets", "mute_short_offsets", "mute_above_func", "mute_below_func"
+mute: list[str] = ["mute_short_offsets"]
+max_offset: float = 180
+min_offset: float = 5
+mute_above_func = lambda offset: 0.2 + 0.00666*offset
+mute_below_func = lambda offset: 0.0 + 0.00666*offset
+t_taper: float = 0.01
 
 # normalization
-# options: "trace_normalize", "event_normalize", []
-normalize: list[str] = ["trace_normalize"]
+# options: "trace_normalize", "event_normalize"
+normalize = ["trace_normalize", "event_normalize"]
 
 ############################
 ### inversion parameters ###
@@ -39,35 +39,17 @@ normalize: list[str] = ["trace_normalize"]
 #   GD (gradient descent)
 #   LBFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno)
 #   CG (Conjugate Gradient)
-optimize: str = "LBFGS" 
+optimize: str = "LBFGS"                        
 
-max_iter: int = 250
+max_iter: int = 50
 
 # misfit function
-# options: L2_norm, NC_norm, backproject, FATT, Wasserstein, dispersion, GSOT
-# misfit: str = "backproject"
-# additional_misfit_parameters: list = []
-misfit: str = "NC_norm"
+# options: L2_norm, NC_norm
+misfit: str = "NC_norm"                     
 additional_misfit_parameters: list = []
-# misfit: str = "dispersion" 
-# min_rec: int = 90 
-# fmin: float = 5.0 
-# fmax: float = 35.0
-# safe_guard: float = 0.05
-# additional_misfit_parameters: list = [min_rec, fmin, fmax, safe_guard] 
-# misfit: str = "Wasserstein"
-# b: float = 2.0
-# additional_misfit_parameters: list = [b]
-# misfit: str = "GSOT"
-# freq_lim: float = 25.0
-# eta: float = (2.0**2)/(0.025**2)
-# additional_misfit_parameters: list = [freq_lim, eta]    
-# misfit: str = "FATT"
-# taper: float = 0.02
-# additional_misfit_parameters: list = [taper]                    
-             
-smooth_h: float = 20.0 #5.0 #10.0 #15.0 #20.0 
-smooth_v: float = 2.5
+
+smooth_v: float = 20.0
+smooth_h: float = 20.0
 
 precond: str =  "approx_hessian"    # options: None, approx_hessian, from_file ***note gradients are devided by the precond in both cases
 
@@ -75,20 +57,20 @@ invert_params: list[str] = ["vp", "vs"]    # options: vp, vs, rho
 invert_params_weights: dict = {"vp": 1.0, "vs": 1.0}
 
 # bounds fro listed parameters
-vp_bounds: list[float] = [450.0, 5000.0]
-vs_bounds: list[float] = [250.0, 3000.0]
-# rho_bounds: list[float] = [0.9, 1.1]
-vp_vs_ratio_bounds: list[float] = [1.01, 2.99]
-scale_vs_from_vp: bool = False   
+vp_bounds: list[float] = [299, 450]
+vs_bounds: list[float] = [150, 300]
+rho_bounds: list[float] = [250, 300]
+vp_vs_ratio_bounds: list[float] = [1.1, 3.0]
+scale_vs_from_vp: bool = True
 
 # max/min update (e.g., 0.1 means that the max/min update is 10% of the model being updated)
-max_update: float = 0.20
+max_update: float = 0.2
 min_update: float = 0.01
 
 #######################
 ### misc parameters ###
 #######################
 # options: ["x", "z"] for elastic material, ["p"] for acoustic material 
-components: list[str] = ["x", "z"] 
-save_traces: bool = False 
+components: list[str] = ["x", "z"]       
+save_traces = True 
 

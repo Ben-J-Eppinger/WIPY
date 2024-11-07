@@ -118,7 +118,7 @@ class optimize_base:
 
         # save descent direction
         des_path: str = "/".join([self.PATHS.OUTPUT,"desc_"+"{:04d}".format(self.iter)])
-        sp.run(["mkdir", des_path])
+        p = sp.run(["mkdir", des_path], capture_output=True)
         utils.write_model(des_path, h)
 
         return h
