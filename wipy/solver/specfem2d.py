@@ -26,16 +26,11 @@ class specfem2d(solver_base):
             new_par='.true.'
         )
 
-        # if using elastic modeling output displacement seismograms and if using acoustic modeling output preasure seismograms
-        if self.PARAMS.material == "elastic":
-            seismotype = "1"
-        elif self.PARAMS.material == "acoustic":
-            seismotype = "4"
-            
+        seismo_type_dict: dict[str: str] = {"d": "1", "v": "2", "a": "3", "p": "4"}
         super().setpar(
             path="/".join([path, 'DATA', 'Par_file']),
             par='seismotype',
-            new_par=seismotype
+            new_par=seismo_type_dict[self.PARAMS.seismotype]
         )
         
         print("Calling specfem2d forward solver")
