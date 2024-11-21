@@ -169,10 +169,10 @@ class preprocess_base:
         if self.PARAMS.solver == "specfem2d":
             if self.PARAMS.material == "elastic":
                 components = ["x", "z"]
-                mode = self.PARAMS.seismotype #"d"
+                mode = self.PARAMS.seismotype 
             elif self.PARAMS.material == "acoustic":
                 components = ["p"]
-                mode = self.PARAMS.seismotype #"p"
+                mode = self.PARAMS.seismotype 
 
         for comp in components:
             name: str = self.PARAMS.gather_names
