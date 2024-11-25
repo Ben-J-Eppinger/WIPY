@@ -422,3 +422,180 @@ def GSOT(syn, obs, freq_lim, eta, p=2):
         adj[tr_ind].data = adj_tr   
 
     return adj, residuals
+
+
+######################################### 
+### Helper Function for WaveCo Misfit ###
+#########################################
+
+ricker = lambda t, f0: (1.0 - 2.0*(np.pi**2)*(f0**2)*((t)**2))*np.exp(-(np.pi**2)*(f0**2)*((t)**2))
+
+def complex_ricker(t, f0):
+   w = ricker(t, f0)
+   w = np.fft.fft(w)
+   w[len(w)//2:] = 0.0 + 0.0j
+   w = np.fft.ifft(w)
+   return w
+
+
+def CWT(f, freq_0, S, mother, t):
+   """
+   Compute the wavelet transform of a signal, f, at scales S and frequency f0
+   """
+   # set some important variables
+   dt = t[1] - t[0]   
+   t_half = np.max(t)/2
+
+   # compute the fourier transfor of the input signal, f
+   f_hat = np.fft.fft(f)
+
+   # initialize the wavelet transform
+   W = np.zeros((len(S), len(f)), dtype=complex)
+
+   # loop through the scales
+   for i, s in enumerate(S): 
+       # compute the wavelet at the scale s
+       w = mother((t-t_half)/s, freq_0)
+
+       # compute the fourier transform of the wavelet
+       w_hat = np.fft.fft(w)
+
+       # populate the wavelet transform matrix
+       W[i, :] = np.fft.ifft(f_hat * np.conj(w_hat))*(1/np.sqrt(s))
+
+       # shift W by t_half
+       W[i, :] = np.roll(W[i, :], int(t_half/dt))
+
+   return W
+
+
+def ICWT(W, freq_0, S, mother, t):
+   """
+   Compute the inverse wavelet transform of a signal, f, at scales S and frequency f0
+   """
+
+   # set some important variables
+   dt = t[1] - t[0]
+   t_half = np.max(t)/2
+   ds = S[1]-S[0]
+
+   # compute the fourier transfor of the input signal wavelet transform
+   W = np.fft.fft(W, axis=1)
+
+   w = mother((t-t_half), freq_0)
+   w_hat = np.fft.fft(w)
+
+   freqs = np.fft.fftfreq(len(t), dt)
+   df = freqs[1] - freqs[0]
+   c_w = w_hat[freqs != 0]
+   freqs = freqs[freqs != 0]
+   c_w = (np.abs(c_w)**2)/freqs
+   c_w = np.sum(c_w)*df
+   c_w /= np.sqrt(2*np.pi)
+
+   # loop through the scales
+   for i, s in enumerate(S): 
+       # compute the wavelet at the scale s
+       w = mother((t-t_half)/s, freq_0)
+
+       # compute the fourier transform of the wavelet
+       w_hat = np.fft.fft(w)
+
+       # populate the wavelet transform matrix
+       W[i, :] = W[i, :] * w_hat*(1/s**(2.5))
+
+   # compute the inverse fourier transform 
+   W = np.fft.ifft(W, axis=1)
+
+   # shift W by t_half
+   W = np.roll(W, -int(t_half/dt), axis=1)
+
+   f = np.sum(W, axis=0)*ds
+   f /= c_w
+
+   return f.real   
+
+
+def WaveCo(syn, obs, max_freq, min_freq, gamma, mother = complex_ricker):
+    
+    # initialize adjoint source and residuals
+    adj = deepcopy(syn)
+    residuals = []
+
+    # initialize time scheme
+    dt = syn.traces[0].stats.delta
+    Nt = len(syn.traces[0].data)
+    t = np.arange(0, Nt)*dt
+
+    # come up with down sampled scheme
+    dt_dsr = 1/(2*max_freq)
+    dsr = int(dt_dsr/dt)
+    t_ds = t[::dsr]
+    t_cent = t_ds - np.mean(t_ds)
+
+    # compute scale factors 
+    S = np.linspace(1, max_freq/min_freq, len(t_ds)//4)
+
+    # set mother wavelet
+    mother = mother
+
+    for tr_ind in range(len(syn.traces)):
+
+        # downsample data
+        syn_tr = syn.traces[tr_ind].data[::dsr]
+        obs_tr = obs.traces[tr_ind].data[::dsr]
+
+        # compute the CFTs of observed and synthetic data
+        W_obs = CWT(obs_tr, max_freq, S, mother, t_ds)
+        W_syn = CWT(syn_tr, max_freq, S, mother, t_ds)
+
+        # Compute Coherence and Penalty Terms
+        C = np.conj(W_obs)*W_syn
+        P = np.conj(C)*C
+        eps = 0.01*np.max(np.abs(P))
+        P /= P + eps
+
+        # compute scale factor based weighting term
+        weight = np.zeros(W_syn.shape, dtype=complex)
+        for i, s in enumerate(S): 
+                    weight[i, :] = s**(gamma)
+
+        # compute the first part of the adjont source
+        P = P*weight
+        P1 = P*(W_syn-W_obs)
+        P1 = ICWT(P1, max_freq, S, mother, t_ds)
+
+        # calculate the residual
+        resid = np.sum(P1**2)*dsr
+        residuals.append(resid)
+
+        # compute wavelet based weighting term
+        K = np.zeros(W_syn.shape, dtype=complex)
+        for i, s in enumerate(S): 
+            # compute the wavelet at the scale s
+            w = mother((t_cent)/s, max_freq)
+            K[i, :] = 1/np.sqrt(s) * np.sum(np.conj(w))*dsr
+            
+        # finalize computation of the adjiont source
+        P2 = weight * eps *np.conj(W_obs) * (np.conj(C) + C) / ((np.conj(C) * C + eps)**2)
+        P2 *= (W_syn-W_obs)
+        P2 += P
+        P2 *= K
+        P2 = ICWT(P2, max_freq, S, mother, t_ds)       
+        
+        adj_tr = 2*P1*P2
+
+        # create interpolation object for adjoint source
+        adj_interp = scipy.interpolate.interp1d(
+            t_ds,
+            adj_tr, 
+            kind="cubic", 
+            bounds_error=False,
+            fill_value=(adj_tr[0], adj_tr[-1])
+        )
+
+        # sampel adjoint source at original time scheme
+        adj_tr = adj_interp(t)
+        adj[tr_ind].data = adj_tr
+
+    return adj, residuals

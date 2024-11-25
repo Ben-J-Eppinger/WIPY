@@ -314,4 +314,4 @@ def pick_synthetic_data(data: Stream, tol: float = 10**(-3)) -> np.ndarray:
         picks.append(np.argmax(bool)*dt)
 
     return np.array(picks)
-        
+    
