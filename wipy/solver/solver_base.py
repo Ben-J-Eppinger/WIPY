@@ -190,7 +190,7 @@ class solver_base:
 
             for key in h.keys():
                 weight = self.PARAMS.invert_params_weights[key[5:]]
-                h[key] = weight*h[key]/p
+                h[key] = weight*h[key]*p
 
         return h
 

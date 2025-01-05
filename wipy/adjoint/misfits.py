@@ -424,9 +424,9 @@ def GSOT(syn, obs, freq_lim, eta, p=2):
     return adj, residuals
 
 
-######################################### 
-### Helper Function for WaveCo Misfit ###
-#########################################
+##################################################
+### Helper Functions for Misfits using the CWT ###
+##################################################
 
 ricker = lambda t, f0: (1.0 - 2.0*(np.pi**2)*(f0**2)*((t)**2))*np.exp(-(np.pi**2)*(f0**2)*((t)**2))
 
@@ -469,54 +469,7 @@ def CWT(f, freq_0, S, mother, t):
    return W
 
 
-def ICWT(W, freq_0, S, mother, t):
-   """
-   Compute the inverse wavelet transform of a signal, f, at scales S and frequency f0
-   """
-
-   # set some important variables
-   dt = t[1] - t[0]
-   t_half = np.max(t)/2
-   ds = S[1]-S[0]
-
-   # compute the fourier transfor of the input signal wavelet transform
-   W = np.fft.fft(W, axis=1)
-
-   w = mother((t-t_half), freq_0)
-   w_hat = np.fft.fft(w)
-
-   freqs = np.fft.fftfreq(len(t), dt)
-   df = freqs[1] - freqs[0]
-   c_w = w_hat[freqs != 0]
-   freqs = freqs[freqs != 0]
-   c_w = (np.abs(c_w)**2)/freqs
-   c_w = np.sum(c_w)*df
-   c_w /= np.sqrt(2*np.pi)
-
-   # loop through the scales
-   for i, s in enumerate(S): 
-       # compute the wavelet at the scale s
-       w = mother((t-t_half)/s, freq_0)
-
-       # compute the fourier transform of the wavelet
-       w_hat = np.fft.fft(w)
-
-       # populate the wavelet transform matrix
-       W[i, :] = W[i, :] * w_hat*(1/s**(2.5))
-
-   # compute the inverse fourier transform 
-   W = np.fft.ifft(W, axis=1)
-
-   # shift W by t_half
-   W = np.roll(W, -int(t_half/dt), axis=1)
-
-   f = np.sum(W, axis=0)*ds
-   f /= c_w
-
-   return f.real   
-
-
-def WaveCo(syn, obs, max_freq, min_freq, gamma, mother = complex_ricker):
+def WavePhase(syn, obs, max_freq, min_freq, mother = complex_ricker):
     
     # initialize adjoint source and residuals
     adj = deepcopy(syn)
@@ -528,74 +481,74 @@ def WaveCo(syn, obs, max_freq, min_freq, gamma, mother = complex_ricker):
     t = np.arange(0, Nt)*dt
 
     # come up with down sampled scheme
-    dt_dsr = 1/(2*max_freq)
+    dt_dsr = (1/(2*max_freq))/4.0
     dsr = int(dt_dsr/dt)
     t_ds = t[::dsr]
     t_cent = t_ds - np.mean(t_ds)
 
     # compute scale factors 
-    S = np.linspace(1, max_freq/min_freq, len(t_ds)//4)
+    S = max_freq/np.linspace(max_freq, min_freq, len(t_ds)//4)
 
     # set mother wavelet
     mother = mother
 
+    # compute weighting matrices 
+    weight = np.zeros((len(S), len(t_ds)), dtype=complex)
+    K = np.zeros((len(S), len(t_ds)), dtype=complex)
+    for i, s in enumerate(S): 
+            weight[i, :] = s**(-1.5)
+            K[i, :] = s**(-2.0)
+
+    # set parameters for Gamma function
+    eps = 100.0
+    eta = 0.05
+
     for tr_ind in range(len(syn.traces)):
 
-        # downsample data
-        syn_tr = syn.traces[tr_ind].data[::dsr]
-        obs_tr = obs.traces[tr_ind].data[::dsr]
+        if np.sum(np.abs(obs.traces[tr_ind].data)) == 0:
+            adj[tr_ind].data = 0.0*syn.traces[tr_ind].data
+            residuals.append(0.0)
 
-        # compute the CFTs of observed and synthetic data
-        W_obs = CWT(obs_tr, max_freq, S, mother, t_ds)
-        W_syn = CWT(syn_tr, max_freq, S, mother, t_ds)
+        else:
+            # downsample data
+            syn_tr = syn.traces[tr_ind].data[::dsr]
+            obs_tr = obs.traces[tr_ind].data[::dsr]
 
-        # Compute Coherence and Penalty Terms
-        C = np.conj(W_obs)*W_syn
-        P = np.conj(C)*C
-        eps = 0.01*np.max(np.abs(P))
-        P /= P + eps
+            # compute the CFTs of observed and synthetic data
+            W_obs = CWT(obs_tr, max_freq, S, mother, t_ds)
+            W_syn = CWT(syn_tr, max_freq, S, mother, t_ds)
 
-        # compute scale factor based weighting term
-        weight = np.zeros(W_syn.shape, dtype=complex)
-        for i, s in enumerate(S): 
-                    weight[i, :] = s**(gamma)
+            # compute the phase difference
+            Phase = np.log(W_syn/W_obs).imag
+            C = np.abs(np.conj(W_obs)*W_syn)
+            C /= np.max(C)
+            Gamma = 1 / (1 + np.exp(-eps*(C-eta)))
+            Phase *= Gamma
+            P = np.conj(W_syn) * W_syn
 
-        # compute the first part of the adjont source
-        P = P*weight
-        P1 = P*(W_syn-W_obs)
-        P1 = ICWT(P1, max_freq, S, mother, t_ds)
+            # compute adjoint source
+            ADJ = Phase * np.imag(W_syn)
+            adj_tr = -np.trapz(weight * ADJ, S, axis=0).real
 
-        # calculate the residual
-        resid = np.sum(P1**2)*dsr
-        residuals.append(resid)
+            # create interpolation object for adjoint source
+            adj_interp = scipy.interpolate.interp1d(
+                t_ds,
+                adj_tr, 
+                kind="cubic", 
+                bounds_error=False,
+                fill_value=(adj_tr[0], adj_tr[-1])
+            )
 
-        # compute wavelet based weighting term
-        K = np.zeros(W_syn.shape, dtype=complex)
-        for i, s in enumerate(S): 
-            # compute the wavelet at the scale s
-            w = mother((t_cent)/s, max_freq)
-            K[i, :] = 1/np.sqrt(s) * np.sum(np.conj(w))*dsr
-            
-        # finalize computation of the adjiont source
-        P2 = weight * eps *np.conj(W_obs) * (np.conj(C) + C) / ((np.conj(C) * C + eps)**2)
-        P2 *= (W_syn-W_obs)
-        P2 += P
-        P2 *= K
-        P2 = ICWT(P2, max_freq, S, mother, t_ds)       
-        
-        adj_tr = 2*P1*P2
+            # sample adjoint source at original time scheme
+            adj_tr = adj_interp(t)
+            adj[tr_ind].data = adj_tr
 
-        # create interpolation object for adjoint source
-        adj_interp = scipy.interpolate.interp1d(
-            t_ds,
-            adj_tr, 
-            kind="cubic", 
-            bounds_error=False,
-            fill_value=(adj_tr[0], adj_tr[-1])
-        )
-
-        # sampel adjoint source at original time scheme
-        adj_tr = adj_interp(t)
-        adj[tr_ind].data = adj_tr
+            # compute residual
+            R = K * P * (Phase**2)
+            R = np.trapz(R, S, axis=0).real  
+            resid = np.sum(R)*dt
+            residuals.append(resid)
 
     return adj, residuals
+  
+  
