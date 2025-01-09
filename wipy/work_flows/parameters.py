@@ -55,7 +55,9 @@ additional_misfit_parameters: list[str] = [max_freq, min_freq]
 smooth_h: float = 100.0
 smooth_v: float = 100.0
 
-precond: str =  "approx_hessian"    # options: None, approx_hessian, from_file 
+#preconditioner
+# # options: None, approx_hessian, from_file 
+precond: list[str] =  ["approx_hessian", "from_file"]    
 
 invert_params: list[str] = ["vp"]    # options: vp, vs, rho
 invert_params_weights: dict = {"vp": 1.0}

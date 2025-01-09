@@ -70,7 +70,7 @@ class specfem2d(solver_base):
             new_par='.true.'
         )        
 
-        if self.PARAMS.precond == "approx_hessian":
+        if "approx_hessian" in self.PARAMS.precond:
             hess_par = ".true."
         else:
             hess_par = ".false."

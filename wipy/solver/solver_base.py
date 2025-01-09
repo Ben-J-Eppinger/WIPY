@@ -24,7 +24,7 @@ class solver_base:
             kernels_used.append(params_to_kernel_names[param])
 
         # if using the approx hessian precond, append it to the end of the kernels_used list
-        if self.PARAMS.precond == "approx_hessian":
+        if "approx_hessian" in self.PARAMS.precond:
             if self.PARAMS.material == "elastic":
                 kernels_used.append("Hessian1_kernel")
             elif self.PARAMS.material == "acoustic":
@@ -175,7 +175,7 @@ class solver_base:
 
         print("\nApplying Preconditioner \n")
 
-        if self.PARAMS.precond == "approx_hessian":
+        if  "approx_hessian" in self.PARAMS.precond:
             
             hess_path: str = "/".join([self.PATHS.scratch_eval_grad_path, "sum_smooth", "proc000000_"+self.PARAMS.kernels_used[-1]+"_smooth.bin"])
             hess: np.ndarray = utils.read_fortran_binary(hess_path)
@@ -184,7 +184,7 @@ class solver_base:
                 weight = self.PARAMS.invert_params_weights[key[5:]]
                 h[key] = weight*h[key]/hess
 
-        elif self.PARAMS.precond == "from_file":
+        if  "from_file" in self.PARAMS.precond:
             
             p = utils.read_fortran_binary(self.PATHS.precond_path)
 
