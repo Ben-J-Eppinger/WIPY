@@ -261,9 +261,16 @@ class base:
                 capture_output=True,
             )
 
-            # rename the source of the directory (event) number as SOURCE so specfem uses it as the source input
+            # rename the source file of the directory (event) number as SOURCE so specfem uses it as the source input
             sp.run(
                 ["cp", "SOURCE_"+dir_num, "SOURCE"],
+                cwd="/".join([PATHS.scratch_solver_path, dir_num, 'DATA']),
+                capture_output=True,
+            )
+
+            # rename the statinos file of the directory (event) number as STATIONS so specfem uses it as the STATIONS input
+            sp.run(
+                ["cp", "STATIONS_"+dir_num, "STATIONS"],
                 cwd="/".join([PATHS.scratch_solver_path, dir_num, 'DATA']),
                 capture_output=True,
             )
