@@ -428,7 +428,7 @@ def GSOT(syn, obs, freq_lim, eta, p=2):
 ### Helper Functions for Misfits using the CWT ###
 ##################################################
 
-ricker = lambda t, f0: (1.0 - 2.0*(np.pi**2)*(f0**2)*((t)**2))*np.exp(-(np.pi**2)*(f0**2)*((t)**2))
+ricker = lambda t, f0: (1.0-2.0*(np.pi**2)*(f0**2)*((t)**2)) * np.exp(-(np.pi**2)*(f0**2)*((t)**2))
 
 def complex_ricker(t, f0):
    w = ricker(t, f0)
@@ -484,7 +484,6 @@ def WavePhase(syn, obs, max_freq, min_freq, mother = complex_ricker):
     dt_dsr = (1/(2*max_freq))/4.0
     dsr = int(dt_dsr/dt)
     t_ds = t[::dsr]
-    t_cent = t_ds - np.mean(t_ds)
 
     # compute scale factors 
     S = max_freq/np.linspace(max_freq, min_freq, len(t_ds)//4)
@@ -500,8 +499,8 @@ def WavePhase(syn, obs, max_freq, min_freq, mother = complex_ricker):
             K[i, :] = s**(-2.0)
 
     # set parameters for Gamma function
-    eps = 100.0
-    eta = 0.05
+    eps = 60.0 #150.0
+    eta = 0.10 #0.05
 
     for tr_ind in range(len(syn.traces)):
 
@@ -519,16 +518,25 @@ def WavePhase(syn, obs, max_freq, min_freq, mother = complex_ricker):
             W_syn = CWT(syn_tr, max_freq, S, mother, t_ds)
 
             # compute the phase difference
-            Phase = np.log(W_syn/W_obs).imag
-            C = np.abs(np.conj(W_obs)*W_syn)
-            C /= np.max(C)
-            Gamma = 1 / (1 + np.exp(-eps*(C-eta)))
-            Phase *= Gamma
-            P = np.conj(W_syn) * W_syn
+            Phase = np.angle(W_syn*np.conj(W_obs))
+
+            # compute Gamma function
+            # C = np.abs(np.conj(W_obs)*W_syn)
+            # C /= np.max(C)
+            # Gamma = 1 / (1 + np.exp(-eps*(C-eta)))
+            Gamma = ((1 / (1 + np.exp(-eps*(np.abs(W_syn)-eta)))) 
+                     * 
+                     (1 / (1 + np.exp(-eps*(np.abs(W_obs)-eta)))))
+            Gamma[Gamma < 0.01] = 0.0
+
+            # compute P
+            P = -Gamma * W_syn.imag / (np.abs(W_syn)**2)
+            P[Gamma < 0.01] = 0.0
 
             # compute adjoint source
-            ADJ = Phase * np.imag(W_syn)
-            adj_tr = -np.trapz(weight * ADJ, S, axis=0).real
+            ADJ = (P * Phase).real
+            ADJ[Gamma < 0.01] = 0.0
+            adj_tr = np.trapz(weight * ADJ, S, axis=0).real
 
             # create interpolation object for adjoint source
             adj_interp = scipy.interpolate.interp1d(
@@ -544,11 +552,86 @@ def WavePhase(syn, obs, max_freq, min_freq, mother = complex_ricker):
             adj[tr_ind].data = adj_tr
 
             # compute residual
-            R = K * P * (Phase**2)
+            R = K * Gamma * (Phase**2)
+            R[Gamma < 0.01] = 0.0
             R = np.trapz(R, S, axis=0).real  
             resid = np.sum(R)*dt
             residuals.append(resid)
 
     return adj, residuals
   
-  
+
+def WaveAmp(syn, obs, max_freq, min_freq, mother = complex_ricker):
+    
+    # initialize adjoint source and residuals
+    adj = deepcopy(syn)
+    residuals = []
+
+    # initialize time scheme
+    dt = syn.traces[0].stats.delta
+    Nt = len(syn.traces[0].data)
+    t = np.arange(0, Nt)*dt
+
+    # come up with down sampled scheme
+    dt_dsr = (1/(2*max_freq))/4.0
+    dsr = int(dt_dsr/dt)
+    t_ds = t[::dsr]
+
+    # compute scale factors 
+    S = max_freq/np.linspace(max_freq, min_freq, len(t_ds)//4)
+
+    # set mother wavelet
+    mother = mother
+
+    # compute weighting matrices 
+    weight = np.zeros((len(S), len(t_ds)), dtype=complex)
+    K = np.zeros((len(S), len(t_ds)), dtype=complex)
+    for i, s in enumerate(S): 
+        weight[i, :] = s**(-1.5)
+        K[i, :] = s**(-2.0)
+
+    for tr_ind in range(len(syn.traces)):
+
+        if np.sum(np.abs(obs.traces[tr_ind].data)) == 0:
+            adj[tr_ind].data = 0.0*syn.traces[tr_ind].data
+            residuals.append(0.0)
+
+        else:
+            # downsample data
+            syn_tr = syn.traces[tr_ind].data[::dsr]
+            obs_tr = obs.traces[tr_ind].data[::dsr]
+
+            # compute the CFTs of observed and synthetic data
+            W_obs = CWT(obs_tr, max_freq, S, mother, t_ds)
+            W_syn = CWT(syn_tr, max_freq, S, mother, t_ds)
+
+            # compute the Amplitude difference
+            Diff = np.abs(W_syn+0.01) - np.abs(W_obs)+0.01
+
+            # compute the real part of the stabalized synthetic wavelet transform
+            Re = np.real(W_syn + 0.01)
+
+            # compute adjoint source
+            ADJ = Diff * Re / np.abs(W_syn + 0.01)
+            adj_tr = np.trapz(weight * ADJ, S, axis=0).real
+
+            # create interpolation object for adjoint source
+            adj_interp = scipy.interpolate.interp1d(
+                t_ds,
+                adj_tr, 
+                kind="cubic", 
+                bounds_error=False,
+                fill_value=(adj_tr[0], adj_tr[-1])
+            )
+
+            # sample adjoint source at original time scheme
+            adj_tr = adj_interp(t)
+            adj[tr_ind].data = adj_tr
+
+            # compute residual
+            R = K * (Diff**2)
+            R = np.trapz(R, S, axis=0).real  
+            resid = np.sum(R)*dt
+            residuals.append(resid)
+
+    return adj, residuals

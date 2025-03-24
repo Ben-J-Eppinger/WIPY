@@ -4,8 +4,8 @@
 
 solver: str = "specfem2d"       # options: specfem2d
 material: str = "acoustic"      # options: acoustic, elastic
-n_events: int = 200              
-n_proc: int = -1                # -1 means that the minumum number of processors will be used  
+n_events: int = 40              
+n_proc: int = -1                # -1 means that the maximum number of processors will be used  
 
 #############################
 ### preprocess parameters ###
@@ -13,9 +13,9 @@ n_proc: int = -1                # -1 means that the minumum number of processors
 
 # filtering
 # options: "bandpass", "lowpass", "highpass", or None
-filter: str = "lowpass"
-# freq_min: float = 1
-freq_max: float = 1.5
+filter: str = "bandpass" 
+freq_max: float = 6.5 
+freq_min: float = 0.5 
 filter_order: int = 10
 
 # muting
@@ -30,6 +30,7 @@ t_taper: float = 0.5
 # normalization
 # options: "trace_normalize", "event_normalize", []
 normalize = ["trace_normalize"]
+# normalize: list[str] = ["event_normalize"]
 
 ############################
 ### inversion parameters ###
@@ -39,31 +40,31 @@ normalize = ["trace_normalize"]
 #   GD (gradient descent)
 #   LBFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno)
 #   CG (Conjugate Gradient)
-optimize: str = "GD"                         
+optimize: str = "LBFGS"                         
 
-max_iter: int = 100
+max_iter: int = 1000
 
 # misfit function
-# options: L2_norm, NC_norm, disperion, Wasserstein, GSOT, AntiWaveCo, WaveCo, WaveCorr backproject
-# misfit: str = "L2_norm"
-misfit: str = "WavePhase"
-max_freq: float = 1.5
-min_freq: float = 0.25
-additional_misfit_parameters: list[str] = [max_freq, min_freq]                     
-# additional_misfit_parameters: list[str] = [ ]                     
+# options: L2_norm, NC_norm, disperion, Wasserstein, GSOT, WavePhase, WaveAmp, backproject
+misfit: str =  "WaveAmp"
+max_freq: float = 1.0*freq_max
+min_freq: float = 1.0*freq_min
+additional_misfit_parameters: list[str] = [max_freq, min_freq]    
+# misfit: str = "L2_norm" 
+# additional_misfit_parameters: list[str] = []                     
 
-smooth_h: float = 100.0
-smooth_v: float = 100.0
+smooth_v: float = 100.0 
+smooth_h: float = 100.0 
 
 #preconditioner
-# # options: None, approx_hessian, from_file 
+# options: None, approx_hessian, from_file 
 precond: list[str] =  ["approx_hessian", "from_file"]    
 
 invert_params: list[str] = ["vp"]    # options: vp, vs, rho
 invert_params_weights: dict = {"vp": 1.0}
 
 # bounds fro listed parameters
-vp_bounds: list[float] = [1000.0, 4700.0]
+vp_bounds: list[float] = [1500.0, 4700.0]
 vs_bounds: list[float] = []
 rho_bounds: list[float] = [0.9, 1.1]
 vp_vs_ratio_bounds: list[float] = []
