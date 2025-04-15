@@ -1,9 +1,9 @@
 wipy_root_path = "/home/beneppinger/WIPY_Projects/marmousi3"
 solver_exec_path = "/home/beneppinger/WIPY_Projects/marmousi3/specfem2d/bin"
 solver_data_path = "/home/beneppinger/WIPY_Projects/marmousi3/specfem2d/DATA"
-obs_data_path = "/home/beneppinger/WIPY_Projects/marmousi3/OBS_data"
-model_init_path = "/home/beneppinger/WIPY_Projects/marmousi3/0.5-4.5Hz_amp_results/model_final"
-# model_init_path = "/home/beneppinger/WIPY_Projects/marmousi3/model_init"
+obs_data_path = "/home/beneppinger/WIPY_Projects/marmousi3/OBS_data_x"
+# model_init_path = "/home/beneppinger/WIPY_Projects/marmousi3/0.5-4.5Hz_log_results/model_final"
+model_init_path = "/home/beneppinger/WIPY_Projects/marmousi3/model_init"
 # model_init_path = "/home/beneppinger/WIPY_Projects/marmousi3/model_true"
 
 # **note that the precond path is a path to a file rather than to a directory

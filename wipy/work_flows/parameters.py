@@ -14,7 +14,7 @@ n_proc: int = -1                # -1 means that the maximum number of processors
 # filtering
 # options: "bandpass", "lowpass", "highpass", or None
 filter: str = "bandpass" 
-freq_max: float = 6.5 
+freq_max: float = 2.5 
 freq_min: float = 0.5 
 filter_order: int = 10
 
@@ -46,13 +46,26 @@ max_iter: int = 1000
 
 # misfit function
 # options: L2_norm, NC_norm, disperion, Wasserstein, GSOT, WavePhase, WaveAmp, backproject
-misfit: str =  "WaveAmp"
-max_freq: float = 1.0*freq_max
-min_freq: float = 1.0*freq_min
-additional_misfit_parameters: list[str] = [max_freq, min_freq]    
+# misfit: str =  "WaveLog"
+# max_freq: float = 1.0*freq_max
+# min_freq: float = 1.0*freq_min
+# additional_misfit_parameters: list[str] = [max_freq, min_freq]    
 # misfit: str = "L2_norm" 
-# additional_misfit_parameters: list[str] = []                     
-
+# additional_misfit_parameters: list[str] = []                   
+# misfit: str = "ddWavePhase"
+# min_freq: float = 1.0*freq_min
+# max_freq: float = 1.0*freq_max
+# eps = 15.0
+# eta = 0.5
+# max_dist = 1000.0
+# additional_misfit_parameters: list[str] = [max_freq, min_freq, eps, eta, max_dist]   
+misfit: str = "WavePhase"
+min_freq: float = 1.0*freq_min
+max_freq: float = 1.0*freq_max
+eps = 15.0
+eta = 0.5
+max_dist = 1000.0
+additional_misfit_parameters: list[str] = [max_freq, min_freq, eps, eta]   
 smooth_v: float = 100.0 
 smooth_h: float = 100.0 
 
@@ -80,7 +93,7 @@ min_update: float = 0.01
 # options: ["x", "z"] for elastic material, ["p"] for acoustic material 
 components: list[str] = ["p"]       
 save_traces: bool = False 
-# options "d": displacement, "v": velocity, "a": acceleration: "p": preasure
-seismotype: str = "p"
+# options "d": displacement, "v": velocity, "a": acceleration: "p": preasure, "x": potential
+seismotype: str = "x"
 save_traces: bool = False 
 

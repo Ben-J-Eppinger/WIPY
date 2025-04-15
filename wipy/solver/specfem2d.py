@@ -26,7 +26,7 @@ class specfem2d(solver_base):
             new_par='.true.'
         )
 
-        seismo_type_dict: dict[str: str] = {"d": "1", "v": "2", "a": "3", "p": "4"}
+        seismo_type_dict: dict[str: str] = {"d": "1", "v": "2", "a": "3", "p": "4", "x": "6"}
         super().setpar(
             path="/".join([path, 'DATA', 'Par_file']),
             par='seismotype',

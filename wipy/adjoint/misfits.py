@@ -469,7 +469,7 @@ def CWT(f, freq_0, S, mother, t):
    return W
 
 
-def WavePhase(syn, obs, max_freq, min_freq, mother = complex_ricker):
+def WavePhase(syn, obs, max_freq, min_freq, eps=60.0, eta=0.10, mother=complex_ricker):
     
     # initialize adjoint source and residuals
     adj = deepcopy(syn)
@@ -498,10 +498,6 @@ def WavePhase(syn, obs, max_freq, min_freq, mother = complex_ricker):
             weight[i, :] = s**(-1.5)
             K[i, :] = s**(-2.0)
 
-    # set parameters for Gamma function
-    eps = 60.0 #150.0
-    eta = 0.10 #0.05
-
     for tr_ind in range(len(syn.traces)):
 
         if np.sum(np.abs(obs.traces[tr_ind].data)) == 0:
@@ -521,9 +517,6 @@ def WavePhase(syn, obs, max_freq, min_freq, mother = complex_ricker):
             Phase = np.angle(W_syn*np.conj(W_obs))
 
             # compute Gamma function
-            # C = np.abs(np.conj(W_obs)*W_syn)
-            # C /= np.max(C)
-            # Gamma = 1 / (1 + np.exp(-eps*(C-eta)))
             Gamma = ((1 / (1 + np.exp(-eps*(np.abs(W_syn)-eta)))) 
                      * 
                      (1 / (1 + np.exp(-eps*(np.abs(W_obs)-eta)))))
@@ -635,3 +628,98 @@ def WaveAmp(syn, obs, max_freq, min_freq, mother = complex_ricker):
             residuals.append(resid)
 
     return adj, residuals
+
+
+def WaveLog(syn, obs, max_freq, min_freq, mother = complex_ricker):
+    
+    # initialize adjoint source and residuals
+    adj = deepcopy(syn)
+    residuals = []
+
+    # initialize time scheme
+    dt = syn.traces[0].stats.delta
+    Nt = len(syn.traces[0].data)
+    t = np.arange(0, Nt)*dt
+
+    # come up with down sampled scheme
+    dt_dsr = (1/(2*max_freq))/4.0
+    dsr = int(dt_dsr/dt)
+    t_ds = t[::dsr]
+
+    # compute scale factors 
+    S = max_freq/np.linspace(max_freq, min_freq, len(t_ds)//4)
+
+    # set mother wavelet
+    mother = mother
+
+    # compute weighting matrices 
+    weight = np.zeros((len(S), len(t_ds)), dtype=complex)
+    K = np.zeros((len(S), len(t_ds)), dtype=complex)
+    for i, s in enumerate(S): 
+            weight[i, :] = s**(-1.5)
+            K[i, :] = s**(-2.0)
+
+    # set parameters for Gamma function
+    eps = 15.0
+    eta = 0.25
+    gamma0 = 0.1
+    fac = 2.0*np.pi
+
+    for tr_ind in range(len(syn.traces)):
+
+        if np.sum(np.abs(obs.traces[tr_ind].data)) == 0:
+            adj[tr_ind].data = 0.0*syn.traces[tr_ind].data
+            residuals.append(0.0)
+
+        else:
+            # downsample data
+            syn_tr = syn.traces[tr_ind].data[::dsr]
+            obs_tr = obs.traces[tr_ind].data[::dsr]
+
+            # compute the CFTs of observed and synthetic data
+            W_obs = CWT(fac*obs_tr, max_freq, S, mother, t_ds)
+            W_syn = CWT(fac*syn_tr, max_freq, S, mother, t_ds)
+
+            Gamma = ((1 / (1 + np.exp(-eps*(np.abs(W_syn)-eta)))) 
+                     * 
+                     (1 / (1 + np.exp(-eps*(np.abs(W_obs)-eta)))))
+            Gamma[Gamma < gamma0] = 0.0
+
+            # compute amplitude difference
+            Amp  = np.log(np.abs(W_syn)) - np.log(np.abs(W_obs))
+            Amp *= Gamma
+            Amp[Gamma < gamma0] = 0.0
+            
+            # compute phase difference
+            Phase = np.angle(W_syn*np.conj(W_obs))
+            Phase *= Gamma
+            Phase[Gamma < gamma0] = 0.0
+
+            # compute adjoint source
+            ADJ = (Amp * W_syn.real / (np.abs(W_syn)**2)) - (Phase * W_syn.imag / (np.abs(W_syn)**2))
+            ADJ[Gamma < gamma0] = 0.0
+            adj_tr = np.trapz(weight * ADJ, S, axis=0).real
+
+            # create interpolation object for adjoint source
+            adj_interp = scipy.interpolate.interp1d(
+                t_ds,
+                adj_tr, 
+                kind="cubic", 
+                bounds_error=False,
+                fill_value=(adj_tr[0], adj_tr[-1])
+            )
+
+            # sample adjoint source at original time scheme
+            adj_tr = adj_interp(t)
+            adj[tr_ind].data = adj_tr
+
+            # compute residual
+            R = K*(Amp**2 + Phase**2)
+            R[Gamma < gamma0] = 0.0
+            R = np.trapz(R, S, axis=0).real  
+            resid = np.sum(R)*dt
+            residuals.append(resid)
+
+    return adj, residuals
+
+
